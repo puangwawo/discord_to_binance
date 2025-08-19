@@ -128,11 +128,11 @@ function computeSignal(klines){
   const bearEng = (c1 > o1) && (c < o) && (c < o1) && (o > c1);
 
   const avgVol20 = sma(volume,20); const v = volume[len-1]; const vma = last(avgVol20);
-  const volSpike = vma!==undefined ? v > vma*1.2 : false;
+  const volSpike = vma!==undefined ? v > vma*1.05 : false;
 
   const eF = last(emaFast), eF1 = last(emaFast,1), eS = last(emaSlow);
-  const emaTrendUp = (eF > eS) && (eF1!==undefined ? eF > eF1 : false);
-  const emaTrendDown = (eF < eS) && (eF1!==undefined ? eF < eF1 : false);
+  const emaTrendUp = (eF > eS);
+  const emaTrendDown = (eF < eS);
 
   const buy = bullEng && volSpike && emaTrendUp;
   const sell= bearEng && volSpike && emaTrendDown;
