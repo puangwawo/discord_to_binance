@@ -1,186 +1,236 @@
-<!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+<!doctype html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Wunder Paper Auto Trader</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background-color: #121212;
-      color: #e0e0e0;
-      margin: 0;
-      padding: 20px;
-    }
-    .container {
-      max-width: 1000px;
-      margin: auto;
-    }
-    h1 {
-      text-align: center;
-      margin-bottom: 10px;
-    }
-    .version {
-      text-align: center;
-      font-size: 0.8rem;
-      color: #aaa;
-    }
-    .panel {
-      background: #1e1e1e;
-      padding: 15px;
-      border-radius: 12px;
-      margin-bottom: 20px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.5);
-    }
-    button {
-      padding: 8px 14px;
-      margin: 4px;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-    .buy { background: #006400; color: #fff; }
-    .sell { background: #8b0000; color: #fff; }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px;
-    }
-    table th, table td {
-      border: 1px solid #333;
-      padding: 6px;
-      text-align: center;
-    }
-    .green { color: #00ff7f; }
-    .red { color: #ff6347; }
-  </style>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Wunder Paper Auto Trader — Pine v3</title>
+<style>
+:root{--bg:#0b0f14;--card:#111826;--muted:#9fb3c8;--line:#1f2836;--good:#7ce38b;--bad:#ff8a8a}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:#e6edf3;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+.container{max-width:1100px;margin:24px auto;padding:0 16px}
+.h1{font-size:22px;margin:0 0 16px;display:flex;gap:10px;align-items:center;justify-content:space-between}
+.badge{background:#233046;color:var(--muted);padding:4px 8px;border-radius:999px;font-size:12px}
+.grid{display:grid;grid-template-columns:1fr;gap:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:0 2px 10px rgba(0,0,0,.25)}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.btn{background:#20314a;border:1px solid #2d3e5b;color:#e6edf3;border-radius:10px;padding:8px 12px;cursor:pointer}
+.btn.alt{background:#1b2538}
+.small{font-size:12px;color:var(--muted)}
+input,select{background:#0c131d;color:#e6edf3;border:1px solid #2d3e5b;border-radius:8px;padding:8px}
+table{width:100%;border-collapse:collapse}
+th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left;font-size:14px}
+th{color:#9fb3c8;font-weight:600}
+.right{text-align:right}
+.up{color:var(--good)}.down{color:var(--bad)}
+.kv{display:flex;gap:18px;flex-wrap:wrap}.kv div{background:#0c131d;border:1px solid #1f2836;padding:8px 12px;border-radius:10px}
+@media(min-width:900px){.grid{grid-template-columns:1fr 1fr}}
+</style>
 </head>
 <body>
-  <div class="container">
-    <h1>📈 Wunder Paper Auto Trader</h1>
-    <div class="version">Build: v2.1 (static / no backend)</div>
-
-    <div class="panel">
-      <button id="toggleAuto">Start Auto</button>
-      <button id="refresh">Refresh</button>
-      <button id="reset">Reset Data</button>
-      <div id="status">Auto: OFF</div>
-      <div id="pnl">Total Realized PnL: +0.00 | Equity (R+U): +0.00</div>
-    </div>
-
-    <div class="panel">
-      <label>Symbols (comma, USDT):</label>
-      <input id="symbols" type="text" value="BTCUSDT,XRPUSDT,DOGEUSDT,PEPEUSDT" style="width:100%" />
-      <label>Base USDT:</label>
-      <input id="base" type="number" value="10" />
-      <label>Strength:</label>
-      <input id="strength" type="number" value="1" step="0.1" />
-      <label>TP %:</label>
-      <input id="tp" type="number" value="1" step="0.1" />
-      <label>SL %:</label>
-      <input id="sl" type="number" value="2" step="0.1" />
-    </div>
-
-    <div class="panel">
-      <table id="positions">
-        <thead>
-          <tr>
-            <th>Symbol</th>
-            <th>Price</th>
-            <th>Qty</th>
-            <th>Avg Entry</th>
-            <th>UPnL</th>
-            <th>TP</th>
-            <th>SL</th>
-            <th>Signal</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
+<div class="container">
+  <div class="h1">
+    <div>📈 Wunder Paper Auto Trader <span class="badge">static / Pine v3</span></div>
+    <div class="small" id="build">Build: v3</div>
   </div>
 
-  <script>
-    // === STATE ===
-    let autoTrading = false;
-    let positions = JSON.parse(localStorage.getItem("positions") || "{}");
-    let realizedPnL = parseFloat(localStorage.getItem("realizedPnL") || "0");
+  <div class="grid">
+    <div class="card">
+      <div class="row">
+        <button class="btn" id="toggle">Start Auto</button>
+        <button class="btn alt" id="refresh">Refresh</button>
+        <button class="btn alt" id="reset">Reset Data</button>
+        <div class="small" id="updated">—</div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <label class="small">Symbols</label>
+        <input id="symbols" type="text" value="BTCUSDT,XRPUSDT,DOGEUSDT,PEPEUSDT" style="flex:1">
+        <label class="small">Interval</label>
+        <select id="interval"><option>1m</option><option>5m</option><option>15m</option></select>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <label class="small">Base (USDT)</label><input id="base" type="number" min="1" step="1" value="10" style="width:120px">
+        <label class="small">Strength</label><input id="strength" type="number" min="0.1" max="2" step="0.1" value="1.0" style="width:120px">
+        <label class="small">TP %</label><input id="tp" type="number" min="0.1" max="10" step="0.1" value="1.0" style="width:100px">
+        <label class="small">SL %</label><input id="sl" type="number" min="0.1" max="10" step="0.1" value="2.0" style="width:100px">
+      </div>
+      <div class="small" style="margin-top:6px">Strategy: EMA(50/200) + Engulfing + VolSpike×1.2 + Trend filter • Loop ~5s</div>
+    </div>
 
-    const statusEl = document.getElementById("status");
-    const pnlEl = document.getElementById("pnl");
-    const positionsEl = document.getElementById("positions").querySelector("tbody");
-    const toggleBtn = document.getElementById("toggleAuto");
+    <div class="card">
+      <div><b>Status</b></div>
+      <div class="kv" style="margin-top:8px">
+        <div>Total Realized PnL: <b id="rpnl">+0.00</b></div>
+        <div>Equity (R+U): <b id="equity">+0.00</b></div>
+        <div>Auto: <b id="autoflag">OFF</b></div>
+      </div>
+    </div>
 
-    function log(msg) { console.log("[BOT]", msg); }
+    <div class="card" style="grid-column:1/-1">
+      <h3 style="margin:0 0 10px">Prices & Positions</h3>
+      <table id="pp"><thead><tr>
+        <th>Symbol</th><th class="right">Price</th><th class="right">Qty</th><th class="right">Avg Entry</th>
+        <th class="right">UPnL</th><th>TP</th><th>SL</th><th>Signal</th>
+      </tr></thead><tbody></tbody></table>
+    </div>
+  </div>
+</div>
 
-    // === TOGGLE AUTO ===
-    toggleBtn.addEventListener("click", () => {
-      autoTrading = !autoTrading;
-      statusEl.textContent = "Auto: " + (autoTrading ? "ON" : "OFF");
-      toggleBtn.textContent = autoTrading ? "Stop Auto" : "Start Auto";
-      log("Auto toggled -> " + autoTrading);
-    });
+<script>
+/* ====== STATE ====== */
+const LS_KEY="wunder_pine_v3";
+let state = load() || {
+  symbols:["BTCUSDT","XRPUSDT","DOGEUSDT","PEPEUSDT"],
+  interval:"1m",
+  prices:{}, pos:{}, realized:0, auto:false, base:10, strength:1, tp:1, sl:2
+};
+function save(){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
+function load(){ try{ return JSON.parse(localStorage.getItem(LS_KEY)||""); }catch(e){ return null; } }
+function now(){ return Math.floor(Date.now()/1000); }
+function dollars(n){ n=Number(n||0); return (n>=0?'+':'')+n.toFixed(2); }
+function fmt(n,d=6){ n=Number(n||0); return n.toFixed(d); }
+function ensure(sym){ state.pos[sym]=state.pos[sym]||{qty:0,avg:0,tp:0,sl:0,openedAt:0}; return state.pos[sym]; }
+function unrealized(sym,px){ const p=ensure(sym); return p.qty>0 ? (px-p.avg)*p.qty : 0; }
+function notional(){ const s=Math.max(0.1,Math.min(2,Number(dom.strength.value||state.strength))); const b=Math.max(1,Number(dom.base.value||state.base)); return Math.max(5,s*b); }
 
-    // === REFRESH ===
-    document.getElementById("refresh").addEventListener("click", () => {
-      updateTable();
-      log("Manual refresh done");
-    });
+/* ====== UI refs ====== */
+const dom={
+  toggle:$("#toggle"), refresh:$("#refresh"), reset:$("#reset"), updated:$("#updated"),
+  symbols:$("#symbols"), interval:$("#interval"), base:$("#base"), strength:$("#strength"),
+  tp:$("#tp"), sl:$("#sl"), rpnl:$("#rpnl"), equity:$("#equity"), autoflag:$("#autoflag"),
+  tbody:$("#pp tbody")
+};
+dom.interval.value=state.interval; dom.symbols.value=state.symbols.join(','); dom.base.value=state.base;
+dom.strength.value=state.strength; dom.tp.value=state.tp; dom.sl.value=state.sl;
+function $(s){ return document.querySelector(s); }
 
-    // === RESET ===
-    document.getElementById("reset").addEventListener("click", () => {
-      positions = {};
-      realizedPnL = 0;
-      localStorage.removeItem("positions");
-      localStorage.removeItem("realizedPnL");
-      updateTable();
-      log("Data reset");
-    });
+/* ====== MATH / INDICATORS ====== */
+function sma(arr,period){ if(arr.length<period) return []; const out=[]; let sum=0;
+  for(let i=0;i<arr.length;i++){ sum+=+arr[i]||0; if(i>=period) sum-=(+arr[i-period]||0); if(i>=period-1) out.push(sum/period); }
+  return out;
+}
+function ema(arr,period){ if(arr.length===0) return []; const k=2/(period+1); const out=[]; let prev=arr[0]; out.push(prev);
+  for(let i=1;i<arr.length;i++){ const v=arr[i]*k + prev*(1-k); out.push(v); prev=v; }
+  return out;
+}
+function last(a,n=0){ return a.length>n ? a[a.length-1-n] : undefined; }
 
-    // === UPDATE TABLE ===
-    function updateTable() {
-      positionsEl.innerHTML = "";
-      let equity = realizedPnL;
-      Object.keys(positions).forEach(sym => {
-        let p = positions[sym];
-        let row = `<tr>
-          <td>${sym}</td>
-          <td>${p.price?.toFixed(6) || 0}</td>
-          <td>${p.qty?.toFixed(6) || 0}</td>
-          <td>${p.entry?.toFixed(6) || 0}</td>
-          <td class="${p.uPnL>=0?'green':'red'}">${p.uPnL?.toFixed(2) || 0}</td>
-          <td>${p.tp || '-'}</td>
-          <td>${p.sl || '-'}</td>
-          <td>${p.signal || '-'}</td>
-        </tr>`;
-        positionsEl.innerHTML += row;
-        equity += (p.uPnL||0);
-      });
-      pnlEl.textContent = `Total Realized PnL: ${realizedPnL.toFixed(2)} | Equity (R+U): ${equity.toFixed(2)}`;
+/* ====== PINE LOGIC ====== */
+function computeSignal(klines){
+  // klines: [openTime, open, high, low, close, volume, ...]
+  const len=klines.length; if(len<205) return {sig:null};
+  const open=[], close=[], volume=[];
+  for(let i=0;i<len;i++){ open.push(+klines[i][1]); close.push(+klines[i][4]); volume.push(+klines[i][5]); }
+
+  const emaFast=ema(close,50), emaSlow=ema(close,200);
+  const c=close[len-1], o=open[len-1], c1=close[len-2], o1=open[len-2];
+
+  const bullEng = (c1 < o1) && (c > o) && (c > o1) && (o < c1);
+  const bearEng = (c1 > o1) && (c < o) && (c < o1) && (o > c1);
+
+  const avgVol20 = sma(volume,20); const v = volume[len-1]; const vma = last(avgVol20);
+  const volSpike = vma!==undefined ? v > vma*1.2 : false;
+
+  const eF = last(emaFast), eF1 = last(emaFast,1), eS = last(emaSlow);
+  const emaTrendUp = (eF > eS) && (eF1!==undefined ? eF > eF1 : false);
+  const emaTrendDown = (eF < eS) && (eF1!==undefined ? eF < eF1 : false);
+
+  const buy = bullEng && volSpike && emaTrendUp;
+  const sell= bearEng && volSpike && emaTrendDown;
+
+  return {sig: buy?'BUY':(sell?'SELL':null)};
+}
+
+/* ====== FETCHERS ====== */
+async function fetchKlines(sym,intv){
+  const url=`https://api.binance.com/api/v3/klines?symbol=${encodeURIComponent(sym)}&interval=${encodeURIComponent(intv)}&limit=210`;
+  try{ const r=await fetch(url,{cache:'no-store'}); if(!r.ok) throw 0; return await r.json(); }catch(e){ return []; }
+}
+
+/* ====== RENDER ====== */
+function buildRows(){ dom.tbody.innerHTML=''; state.symbols.forEach(s=>{
+  const tr=document.createElement('tr'); tr.dataset.sym=s; tr.innerHTML=`
+    <td><b>${s}</b></td>
+    <td class="right price">0</td>
+    <td class="right qty">0</td>
+    <td class="right avg">0</td>
+    <td class="right upnl">+0.00</td>
+    <td class="tp">—</td>
+    <td class="sl">—</td>
+    <td class="sig">—</td>`;
+  dom.tbody.appendChild(tr);
+});}
+function updateRow(sym){
+  const tr=dom.tbody.querySelector(`tr[data-sym="${sym}"]`); if(!tr) return;
+  const px=state.prices[sym]||0, p=ensure(sym), u=unrealized(sym,px);
+  tr.querySelector('.price').textContent=fmt(px);
+  tr.querySelector('.qty').textContent=fmt(p.qty);
+  tr.querySelector('.avg').textContent=fmt(p.avg);
+  const up=tr.querySelector('.upnl'); up.textContent=dollars(u); up.className=`right upnl ${u>=0?'up':'down'}`;
+  tr.querySelector('.tp').textContent=p.tp?fmt(p.tp):'—';
+  tr.querySelector('.sl').textContent=p.sl?fmt(p.sl):'—';
+}
+function setSig(sym,txt){
+  const tr=dom.tbody.querySelector(`tr[data-sym="${sym}"]`); if(tr) tr.querySelector('.sig').textContent = txt;
+}
+function renderTop(){
+  dom.updated.textContent = new Date().toLocaleString();
+  dom.autoflag.textContent = state.auto ? "ON" : "OFF";
+  let eq = state.realized; state.symbols.forEach(s=> eq += unrealized(s, state.prices[s]||0));
+  dom.rpnl.textContent = dollars(state.realized); dom.equity.textContent = dollars(eq);
+  dom.toggle.textContent = state.auto ? "Stop Auto" : "Start Auto";
+}
+
+/* ====== TRADING (paper) ====== */
+async function maybeTrade(sym){
+  const k = await fetchKlines(sym, state.interval);
+  if(k.length===0){ setSig(sym,'no data'); return; }
+  const px = +k[k.length-1][4]; state.prices[sym]=px;
+  const p = ensure(sym);
+
+  // TP/SL guard
+  if(p.qty>0){
+    if(p.tp>0 && px>=p.tp){ state.realized+=(px-p.avg)*p.qty; Object.assign(p,{qty:0,avg:0,tp:0,sl:0,openedAt:0}); setSig(sym,'TP HIT'); updateRow(sym); renderTop(); save(); return; }
+    if(p.sl>0 && px<=p.sl){ state.realized+=(px-p.avg)*p.qty; Object.assign(p,{qty:0,avg:0,tp:0,sl:0,openedAt:0}); setSig(sym,'SL HIT'); updateRow(sym); renderTop(); save(); return; }
+  }
+
+  const out = computeSignal(k);
+  if(state.auto){
+    if(out.sig==='BUY' && p.qty===0){
+      const q = notional()/px;
+      const tpPct = Number(dom.tp.value||state.tp)/100, slPct = Number(dom.sl.value||state.sl)/100;
+      Object.assign(p,{avg:px, qty:q, tp:px*(1+tpPct), sl:px*(1-slPct), openedAt: now()});
+      setSig(sym,'BUY');
+    }else if(out.sig==='SELL' && p.qty>0){
+      state.realized += (px - p.avg) * p.qty;
+      Object.assign(p,{qty:0,avg:0,tp:0,sl:0,openedAt:0});
+      setSig(sym,'SELL');
+    }else{
+      setSig(sym, out.sig || '—');
     }
+  }else{
+    setSig(sym, out.sig || '—');
+  }
+  updateRow(sym); renderTop(); save();
+}
 
-    // === SIMULATE AUTO ===
-    setInterval(() => {
-      if (!autoTrading) return;
-      // contoh dummy update posisi (nanti ganti logika sinyal real)
-      ["BTCUSDT","XRPUSDT","DOGEUSDT","PEPEUSDT"].forEach(sym=>{
-        let price = (Math.random()*100 + 1).toFixed(4);
-        positions[sym] = {
-          price: parseFloat(price),
-          qty: Math.random(),
-          entry: parseFloat(price),
-          uPnL: (Math.random()*2-1)*10,
-          tp: "1%",
-          sl: "2%",
-          signal: Math.random()>0.5?"BUY":"SELL"
-        };
-      });
-      localStorage.setItem("positions", JSON.stringify(positions));
-      updateTable();
-      log("Auto tick updated");
-    }, 5000);
+async function tick(){
+  for(const s of state.symbols){ try{ await maybeTrade(s); }catch(e){ console.warn('tick fail', s, e); } }
+  renderTop();
+}
 
-    updateTable();
-  </script>
+/* ====== EVENTS ====== */
+$("#toggle").addEventListener("click", ()=>{ state.auto=!state.auto; save(); renderTop(); });
+$("#refresh").addEventListener("click", ()=> tick());
+$("#reset").addEventListener("click", ()=>{ if(confirm("Reset local data?")){ localStorage.removeItem(LS_KEY); location.reload(); } });
+dom.symbols.addEventListener("change", ()=>{ state.symbols=dom.symbols.value.split(',').map(s=>s.trim().toUpperCase()).filter(Boolean); save(); buildRows(); tick(); });
+dom.interval.addEventListener("change", ()=>{ state.interval=dom.interval.value; save(); tick(); });
+dom.base.addEventListener("change", ()=>{ state.base=Math.max(1,Number(dom.base.value||10)); save(); });
+dom.strength.addEventListener("change", ()=>{ state.strength=Math.max(0.1,Math.min(2,Number(dom.strength.value||1))); save(); });
+dom.tp.addEventListener("change", ()=>{ state.tp=Math.max(0.1,Number(dom.tp.value||1)); save(); });
+dom.sl.addEventListener("change", ()=>{ state.sl=Math.max(0.1,Number(dom.sl.value||2)); save(); });
+
+/* ====== INIT ====== */
+buildRows(); renderTop(); tick(); setInterval(tick, 5000);
+</script>
 </body>
 </html>
