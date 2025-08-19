@@ -1,0 +1,330 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wunder Signal Bot ~ DeadZone Entry v2 — Auto Trader (XHTML)</title>
+  <style type="text/css">
+    :root { --bg:#0b0f14; --card:#111826; --muted:#9fb3c8; --line:#1f2836; --good:#7ce38b; --bad:#ff8a8a; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:#0b0f14; color:#e6edf3; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    .container { max-width:1100px; margin:24px auto; padding: 0 16px; }
+    h1 { font-size:20px; margin:0 0 12px 0; }
+    .grid { display:block; }
+    .card { background:#111826; border:1px solid #1f2836; border-radius:12px; padding:16px; margin-bottom:12px; }
+    .row { display:flex; flex-wrap:wrap; align-items:center; gap:10px; }
+    .btn { background:#20314a; border:1px solid #2d3e5b; color:#e6edf3; border-radius:10px; padding:8px 12px; cursor:pointer; }
+    .btn.alt { background:#1b2538; }
+    .btn.good { background:#15351f; border-color:#1b4f2b; }
+    .btn.bad  { background:#402127; border-color:#6c2a32; }
+    .small { font-size:12px; color:#9fb3c8; }
+    input, select { background:#0c131d; color:#e6edf3; border:1px solid #2d3e5b; border-radius:8px; padding:6px 8px; }
+    table { width:100%; border-collapse:collapse; }
+    th, td { padding:8px; border-bottom:1px solid #1f2836; text-align:left; font-size:14px; }
+    th { color:#9fb3c8; font-weight:600; }
+    td.right, th.right { text-align:right; }
+    .up { color:#7ce38b; } .down { color:#ff8a8a; }
+    .pill { display:inline-block; background:#233046; color:#9fb3c8; border-radius:999px; padding:4px 8px; font-size:12px; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
+    @media (min-width:900px) {
+      .grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+      .span-2 { grid-column: 1 / -1; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>📈 Wunder Signal Bot ~ DeadZone Entry v2 <span class="pill">XHTML / Client-Side Paper</span></h1>
+
+  <div class="grid">
+    <div class="card">
+      <div class="row">
+        <button class="btn" id="toggleAuto">Start Auto</button>
+        <button class="btn alt" id="refresh">Refresh</button>
+        <button class="btn alt" id="reset">Reset Data</button>
+        <span class="small" id="updated">—</span>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <label class="small">Symbols (USDT, comma):</label>
+        <input id="symbols" type="text" value="BTCUSDT,XRPUSDT,DOGEUSDT,PEPEUSDT" style="flex:1" />
+        <label class="small">Interval:</label>
+        <select id="interval">
+          <option value="1m">1m</option>
+          <option value="5m">5m</option>
+          <option value="15m">15m</option>
+        </select>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <label class="small">Base USDT</label>
+        <input id="base" type="number" value="10" min="1" step="1" style="width:120px" />
+        <label class="small">Strength</label>
+        <input id="strength" type="number" value="1.0" min="0.1" max="2" step="0.1" style="width:120px" />
+        <label class="small">TP %</label>
+        <input id="tp" type="number" value="1.0" min="0.1" max="10" step="0.1" style="width:100px" />
+        <label class="small">SL %</label>
+        <input id="sl" type="number" value="2.0" min="0.1" max="10" step="0.1" style="width:100px" />
+      </div>
+      <div class="row" style="margin-top:10px">
+        <label class="small">Live orders via backend (optional):</label>
+        <input id="live" type="checkbox" />
+        <input id="backend" type="text" placeholder="https://your-server/api/order" style="flex:1" />
+        <span class="small">*Jangan taruh API Secret di HTML publik. Gunakan backend Flask yang disertakan.</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div><b>Status</b></div>
+      <div class="row kv" style="margin-top:8px;gap:12px">
+        <div>Total Realized PnL: <b id="rpnl">+0.00</b></div>
+        <div>Equity (R+U): <b id="equity">+0.00</b></div>
+        <div>Auto: <span id="auto" class="pill">OFF</span></div>
+      </div>
+    </div>
+
+    <div class="card span-2">
+      <h3 style="margin:0 0 10px">Prices &amp; Positions</h3>
+      <table id="pp"><thead><tr>
+        <th>Symbol</th><th class="right">Price</th><th class="right">Qty</th><th class="right">Avg Entry</th>
+        <th class="right">UPnL</th><th>TP</th><th>SL</th><th>Signal</th>
+      </tr></thead><tbody></tbody></table>
+    </div>
+  </div>
+</div>
+
+<script type="text/javascript">
+/* ========= STATE ========= */
+var LS_KEY = "wunder_auto_v2";
+var state = (function(){ try { return JSON.parse(localStorage.getItem(LS_KEY)||""); } catch(e){ return null; } })() || {
+  symbols: ["BTCUSDT","XRPUSDT","DOGEUSDT","PEPEUSDT"],
+  interval: "1m",
+  prices: {},
+  pos: {},            // {SYM:{qty,avg,tp,sl,openedAt}}
+  realized: 0,
+  auto: false,
+  base: 10,
+  strength: 1.0,
+  tp: 1.0,
+  sl: 2.0
+};
+function save(){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
+function now(){ return Math.floor(new Date().getTime()/1000); }
+function dollars(n){ n=Number(n||0); return (n>=0?'+':'') + n.toFixed(2); }
+function fmt(n,d){ n=Number(n||0); return n.toFixed(d||6); }
+function ensure(sym){ if(!state.pos[sym]) state.pos[sym] = {qty:0,avg:0,tp:0,sl:0,openedAt:0}; return state.pos[sym]; }
+function unrealized(sym, price){ var p=ensure(sym); return p.qty>0 ? (price - p.avg) * p.qty : 0; }
+function notional(){ var s = Math.max(0.1, Math.min(2, Number(document.getElementById('strength').value||state.strength))); var b = Math.max(1, Number(document.getElementById('base').value||state.base)); return Math.max(5, s*b); }
+
+/* ========= UI HOOKS ========= */
+var elSymbols = document.getElementById('symbols');
+var elInterval= document.getElementById('interval');
+var elBase    = document.getElementById('base');
+var elStrength= document.getElementById('strength');
+var elTP      = document.getElementById('tp');
+var elSL      = document.getElementById('sl');
+var elLive    = document.getElementById('live');
+var elBackend = document.getElementById('backend');
+document.getElementById('toggleAuto').onclick = function(){
+  state.auto = !state.auto; save(); renderTop();
+};
+document.getElementById('refresh').onclick = function(){ tick(true); };
+document.getElementById('reset').onclick = function(){
+  if(confirm("Reset local data?")){ localStorage.removeItem(LS_KEY); location.reload(); }
+};
+
+elSymbols.onchange = function(){ state.symbols = elSymbols.value.split(',').map(function(s){return s.trim().toUpperCase();}).filter(Boolean); save(); buildRows(); tick(true); };
+elInterval.onchange= function(){ state.interval = elInterval.value; save(); tick(true); };
+elBase.onchange    = function(){ state.base = Math.max(1, Number(elBase.value||10)); save(); };
+elStrength.onchange= function(){ state.strength = Math.max(0.1, Math.min(2, Number(elStrength.value||1))); save(); };
+elTP.onchange      = function(){ state.tp = Math.max(0.1, Number(elTP.value||1)); save(); };
+elSL.onchange      = function(){ state.sl = Math.max(0.1, Number(elSL.value||2)); save(); };
+
+function renderTop(){
+  document.getElementById('updated').textContent = new Date().toLocaleString();
+  document.getElementById('auto').textContent = state.auto ? "ON" : "OFF";
+  document.getElementById('auto').className = state.auto ? "pill" : "pill";
+  // realized & equity
+  var eq = state.realized;
+  for(var i=0;i<state.symbols.length;i++){ var s=state.symbols[i]; eq += unrealized(s, state.prices[s]||0); }
+  document.getElementById('rpnl').textContent = dollars(state.realized);
+  document.getElementById('equity').textContent = dollars(eq);
+  // push UI values
+  elSymbols.value = state.symbols.join(',');
+  elInterval.value= state.interval;
+  elBase.value    = state.base;
+  elStrength.value= state.strength;
+  elTP.value      = state.tp;
+  elSL.value      = state.sl;
+}
+function buildRows(){
+  var tbody = document.querySelector('#pp tbody'); tbody.innerHTML='';
+  for(var i=0;i<state.symbols.length;i++){
+    var s = state.symbols[i];
+    var tr = document.createElement('tr');
+    tr.setAttribute('data-sym', s);
+    tr.innerHTML = '<td><b>'+s+'</b></td>' +
+      '<td class="right price">0</td>'+
+      '<td class="right qty">0</td>'+
+      '<td class="right avg">0</td>'+
+      '<td class="right upnl">+0.00</td>'+
+      '<td class="tp mono">—</td>'+
+      '<td class="sl mono">—</td>'+
+      '<td class="sig mono">—</td>';
+    tbody.appendChild(tr);
+  }
+}
+
+function updateRow(sym){
+  var tr = document.querySelector('tr[data-sym="'+sym+'"]'); if(!tr) return;
+  var px = state.prices[sym]||0; var p = ensure(sym); var u = unrealized(sym, px);
+  tr.querySelector('.price').textContent = fmt(px,6);
+  tr.querySelector('.qty').textContent   = fmt(p.qty,6);
+  tr.querySelector('.avg').textContent   = fmt(p.avg,6);
+  var up = tr.querySelector('.upnl'); up.textContent = dollars(u); up.className = 'right upnl ' + (u>=0?'up':'down');
+  tr.querySelector('.tp').textContent = p.tp ? fmt(p.tp,6) : '—';
+  tr.querySelector('.sl').textContent = p.sl ? fmt(p.sl,6) : '—';
+}
+
+function setSignal(sym, txt){
+  var tr = document.querySelector('tr[data-sym="'+sym+'"]'); if(!tr) return;
+  tr.querySelector('.sig').textContent = txt;
+}
+
+/* ========= MATH (EMA/SMA & SIGNALS) ========= */
+function sma(arr, period){
+  if(arr.length < period) return [];
+  var out = []; var sum = 0;
+  for(var i=0;i<arr.length;i++){
+    sum += Number(arr[i]||0);
+    if(i>=period){ sum -= Number(arr[i-period]||0); }
+    if(i>=period-1) out.push(sum/period);
+  }
+  return out;
+}
+function ema(arr, period){
+  if(arr.length === 0) return [];
+  var k = 2/(period+1); var out = []; var prev = arr[0];
+  out.push(prev);
+  for(var i=1;i<arr.length;i++){ var v = (arr[i]*k + prev*(1-k)); out.push(v); prev = v; }
+  return out;
+}
+function last(a, n){ return a.length>n ? a[a.length-1-n] : undefined; }
+
+function computeSignal(candles){
+  // candles: [[openTime, open, high, low, close, volume, ...], ...] strings -> numbers
+  var len = candles.length; if(len<205) return {sig:null, emaF:[], emaS:[]};
+  var open = [], close = [], volume = [];
+  for(var i=0;i<len;i++){ open.push(Number(candles[i][1])); close.push(Number(candles[i][4])); volume.push(Number(candles[i][5])); }
+  var emaFast = ema(close, 50);
+  var emaSlow = ema(close, 200);
+  // candle patterns (current=last, prev=last-1)
+  var c = close[len-1], o = open[len-1];
+  var c1= close[len-2], o1= open[len-2];
+  var bullEngulfing = (c1 < o1) && (c > o) && (c > o1) && (o < c1);
+  var bearEngulfing = (c1 > o1) && (c < o) && (c < o1) && (o > c1);
+  // volume spike
+  var avgVol20 = sma(volume, 20); var v = volume[len-1]; var vma = last(avgVol20, 0);
+  var volSpike = (vma !== undefined) ? (v > vma*1.2) : false;
+  // ema trend
+  var eF = last(emaFast, 0), eF1 = last(emaFast, 1);
+  var eS = last(emaSlow, 0);
+  var emaTrendUp = (eF > eS) && (eF1 !== undefined ? eF > eF1 : false);
+  var emaTrendDown = (eF < eS) && (eF1 !== undefined ? eF < eF1 : false);
+  var buySignal = bullEngulfing && volSpike && emaTrendUp;
+  var sellSignal= bearEngulfing && volSpike && emaTrendDown;
+  return {sig: buySignal? 'BUY' : (sellSignal? 'SELL' : null), emaF:emaFast, emaS:emaSlow};
+}
+
+/* ========= FETCH & TRADE ========= */
+async function fetchKlines(sym, interval){
+  var url = 'https://api.binance.com/api/v3/klines?symbol='+encodeURIComponent(sym)+'&interval='+encodeURIComponent(interval)+'&limit=210';
+  try{
+    var r = await fetch(url, {cache:'no-store'});
+    if(!r.ok) throw new Error('klines failed');
+    var arr = await r.json();
+    return arr;
+  }catch(e){ return []; }
+}
+
+async function maybeTrade(sym){
+  var candles = await fetchKlines(sym, state.interval);
+  if(candles.length===0){ setSignal(sym, 'no data'); return; }
+  var out = computeSignal(candles);
+  var px = Number(candles[candles.length-1][4]||0);
+  state.prices[sym] = px;
+  updateRow(sym);
+  if(!state.auto){ setSignal(sym, out.sig||'—'); return; }
+
+  var p = ensure(sym);
+  // TP/SL monitoring if in position
+  if(p.qty>0){
+    if(px >= p.tp && p.tp>0){
+      // take profit
+      state.realized += (px - p.avg) * p.qty;
+      p.qty = 0; p.avg=0; p.tp=0; p.sl=0; p.openedAt=0;
+      setSignal(sym, 'TP HIT → SELL');
+      if(document.getElementById('live').checked){ await sendOrder(sym,'SELL', notional()); }
+      save(); updateRow(sym); renderTop(); return;
+    }
+    if(px <= p.sl && p.sl>0){
+      // stop loss
+      state.realized += (px - p.avg) * p.qty;
+      p.qty = 0; p.avg=0; p.tp=0; p.sl=0; p.openedAt=0;
+      setSignal(sym, 'SL HIT → SELL');
+      if(document.getElementById('live').checked){ await sendOrder(sym,'SELL', notional()); }
+      save(); updateRow(sym); renderTop(); return;
+    }
+  }
+
+  if(out.sig==='BUY' && p.qty===0){
+    // open long
+    var q = notional()/px;
+    p.avg = px; p.qty = q;
+    var tpPct = Number(document.getElementById('tp').value||state.tp)/100.0;
+    var slPct = Number(document.getElementById('sl').value||state.sl)/100.0;
+    p.tp = px * (1+tpPct);
+    p.sl = px * (1-slPct);
+    p.openedAt = now();
+    setSignal(sym, 'BUY');
+    if(document.getElementById('live').checked){ await sendOrder(sym,'BUY', notional(), tpPct, slPct); }
+    save(); updateRow(sym); renderTop(); return;
+  }
+  if(out.sig==='SELL' && p.qty>0){
+    // strategy says sell in downtrend → close
+    state.realized += (px - p.avg) * p.qty;
+    p.qty = 0; p.avg=0; p.tp=0; p.sl=0; p.openedAt=0;
+    setSignal(sym, 'SELL');
+    if(document.getElementById('live').checked){ await sendOrder(sym,'SELL', notional()); }
+    save(); updateRow(sym); renderTop(); return;
+  }
+  setSignal(sym, out.sig||'—');
+}
+
+async function sendOrder(sym, side, quoteOrderQty, tpPct, slPct){
+  var url = document.getElementById('backend').value||'';
+  if(!url){ console.log('No backend configured.'); return; }
+  try{
+    var r = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({symbol:sym, side:side, quoteOrderQty:quoteOrderQty, tpPct:tpPct||null, slPct:slPct||null})});
+    var js = await r.json();
+    console.log('order resp', js);
+  }catch(e){ console.log('order error', e); }
+}
+
+async function tick(force){
+  // update all symbols
+  for(var i=0;i<state.symbols.length;i++){
+    try{ await maybeTrade(state.symbols[i]); }catch(e){}
+  }
+  save();
+  renderTop();
+}
+
+// init
+buildRows(); renderTop();
+setInterval(function(){ tick(false); }, 2000);
+tick(true);
+</script>
+</body>
+</html>
