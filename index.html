@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wunder Paper Trader — GitHub Pages Edition</title>
+<style>
+:root{--bg:#0b0f14;--card:#111826;--muted:#9fb3c8;--line:#1f2836;--good:#7ce38b;--bad:#ff8a8a}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:#e6edf3;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+.container{max-width:1100px;margin:24px auto;padding:0 16px}
+.h1{font-size:22px;margin:0 0 16px;display:flex;align-items:center;gap:10px}
+.badge{background:#233046;color:var(--muted);padding:4px 8px;border-radius:999px;font-size:12px}
+.grid{display:grid;grid-template-columns:1fr;gap:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:0 2px 10px rgba(0,0,0,.25)}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.btn{background:#20314a;border:1px solid #2d3e5b;color:#e6edf3;border-radius:10px;padding:8px 12px;cursor:pointer}
+.btn:disabled{opacity:.6;cursor:not-allowed}
+.btn.alt{background:#1b2538}
+.btn.good{background:#15351f;border-color:#1b4f2b}
+.btn.bad{background:#402127;border-color:#6c2a32}
+.small{font-size:12px;color:var(--muted)}
+input,select{background:#0c131d;color:#e6edf3;border:1px solid #2d3e5b;border-radius:8px;padding:8px}
+table{width:100%;border-collapse:collapse}
+th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left;font-size:14px}
+th{color:#9fb3c8;font-weight:600}
+.right{text-align:right}
+.up{color:var(--good)}.down{color:var(--bad)}
+.kv{display:flex;gap:18px;flex-wrap:wrap}
+.kv div{background:#0c131d;border:1px solid #1f2836;padding:8px 12px;border-radius:10px}
+.slider{width:180px}
+@media(min-width:900px){.grid{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="h1">📊 Wunder Paper Trader <span class="badge">static / GitHub Pages</span></div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="row">
+        <button class="btn" id="refresh">Refresh</button>
+        <button class="btn alt" id="pause">Pause</button>
+        <button class="btn alt" id="reset">Reset Data</button>
+        <button class="btn" id="export">Export CSV</button>
+        <div class="small" id="updated">—</div>
+      </div>
+      <div class="kv" style="margin-top:10px">
+        <div>Total Realized PnL: <b id="rpnl">0</b></div>
+        <div>Equity (R+U): <b id="equity">0</b></div>
+        <div>Polling: <b id="poll">2s</b></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row" style="justify-content:space-between;gap:8px">
+        <div><b>Manual Signal</b> <span class="small">(quote notional = base × strength)</span></div>
+        <div class="row">
+          <label class="small">Base (USDT)</label>
+          <input id="base" type="number" step="1" min="1" style="width:120px">
+          <label class="small">Strength: <span id="strengthVal">1.0</span></label>
+          <input type="range" min="0.1" max="2" step="0.1" value="1" class="slider" id="strength">
+        </div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <label class="small">Symbols (comma, USDT):</label>
+        <input id="symbols" type="text" style="flex:1" placeholder="BTCUSDT,XRPUSDT,DOGEUSDT,PEPEUSDT">
+        <button class="btn" id="apply">Apply</button>
+      </div>
+      <div id="signalBtns" class="row" style="margin-top:10px"></div>
+    </div>
+
+    <div class="card" style="grid-column:1/-1">
+      <h3 style="margin:0 0 10px">Prices & Positions</h3>
+      <table id="pp"><thead><tr><th>Symbol</th><th class="right">Price</th><th class="right">Qty</th><th class="right">Avg Entry</th><th class="right">UPnL</th></tr></thead><tbody></tbody></table>
+    </div>
+  </div>
+</div>
+
+<script>
+/** ====== CONFIG & STATE ====== **/
+const LS_KEY = "wunder_paper_state_v1";
+const DEFAULT_SYMBOLS = ["BTCUSDT","XRPUSDT","DOGEUSDT","PEPEUSDT"];
+const DEFAULT_BASE = 10;
+const POLL_MS = 2000;
+
+let state = loadState() || {
+  symbols: DEFAULT_SYMBOLS.slice(),
+  prices: {},
+  positions: {},   // {SYM:{qty,avg}}
+  realized: 0,
+  paused: false,
+  base: DEFAULT_BASE,
+  trades: []       // {t,sym,side,qty,price,notional,realized}
+};
+function saveState(){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
+function loadState(){ try{ return JSON.parse(localStorage.getItem(LS_KEY)||""); }catch(e){ return null; } }
+function resetState(){
+  state = {symbols: DEFAULT_SYMBOLS.slice(), prices:{}, positions:{}, realized:0, paused:false, base: DEFAULT_BASE, trades:[]};
+  saveState();
+  renderAll();
+}
+
+/** ====== HELPERS ====== **/
+function dollars(n){ n=Number(n||0); return (n>=0?'+':'') + n.toFixed(2) }
+function fmt(n,d=6){ n=Number(n||0); return n.toFixed(d) }
+function now(){ return Math.floor(Date.now()/1000); }
+
+async function fetchPrices(symbols){
+  // Try batch endpoint first (fewer calls)
+  try{
+    const q = encodeURIComponent(JSON.stringify(symbols));
+    const r = await fetch(`https://api.binance.com/api/v3/ticker/price?symbols=${q}`, {cache:'no-store'});
+    if(r.ok){
+      const arr = await r.json();
+      const out = {};
+      arr.forEach(o=> out[o.symbol] = Number(o.price));
+      return out;
+    }
+  }catch(e){ /* fall back */ }
+
+  // Fallback: per-symbol
+  const out = {};
+  for(const s of symbols){
+    try{
+      const r = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${s}`, {cache:'no-store'});
+      if(r.ok){
+        const o = await r.json();
+        out[s] = Number(o.price);
+      }
+    }catch(e){}
+  }
+  return out;
+}
+
+function ensurePos(sym){ state.positions[sym] = state.positions[sym] || {qty:0, avg:0}; return state.positions[sym]; }
+
+function buy(sym, price, notional){
+  const p = ensurePos(sym);
+  const qty = notional>0 && price>0 ? notional/price : 0;
+  const newQty = p.qty + qty;
+  p.avg = (p.qty>0) ? ((p.avg*p.qty + price*qty)/newQty) : price;
+  p.qty = newQty;
+  logTrade(sym,"buy",qty,price,notional);
+}
+
+function sell(sym, price, notional){
+  const p = ensurePos(sym);
+  const qty = Math.min(p.qty, (notional>0 && price>0) ? notional/price : 0);
+  if(qty<=0) return;
+  const pnl = (price - p.avg) * qty;
+  state.realized += pnl;
+  p.qty -= qty;
+  if(p.qty<=0){ p.qty=0; p.avg=0; }
+  logTrade(sym,"sell",qty,price,notional);
+}
+
+function logTrade(sym, side, qty, price, notional){
+  state.trades.push({t:now(), sym, side, qty:Number(qty.toFixed(10)), price:Number(price.toFixed(8)), notional:Number(notional.toFixed(2)), realized:Number(state.realized.toFixed(2))});
+  saveState();
+}
+
+function unrealized(sym, price){
+  const p = ensurePos(sym);
+  return p.qty>0 ? (price - p.avg) * p.qty : 0;
+}
+
+function exportCSV(){
+  const header = ["time","symbol","side","qty","price","notional","realized_pnl_after"];
+  const rows = state.trades.map(t => [t.t, t.sym, t.side, t.qty, t.price, t.notional, t.realized]);
+  const csv = [header.join(","), ...rows.map(r=>r.join(","))].join("\n");
+  const blob = new Blob([csv], {type:"text/csv"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "trades.csv"; a.click();
+  URL.revokeObjectURL(url);
+}
+
+/** ====== UI BINDINGS ====== **/
+const $ = sel => document.querySelector(sel);
+const tbody = $("#pp tbody");
+const btnRefresh = $("#refresh");
+const btnPause = $("#pause");
+const btnReset = $("#reset");
+const btnExport = $("#export");
+const strength = $("#strength");
+const strengthVal = $("#strengthVal");
+const inputBase = $("#base");
+const inputSymbols = $("#symbols");
+const btnApply = $("#apply");
+const signalBtns = $("#signalBtns");
+
+btnRefresh.onclick = tick;
+btnPause.onclick = () => { state.paused = !state.paused; saveState(); renderTop(); };
+btnReset.onclick = () => { if(confirm("Reset all local data?")) { resetState(); } };
+btnExport.onclick = exportCSV;
+strength.oninput = ()=> strengthVal.textContent = Number(strength.value).toFixed(1);
+btnApply.onclick = () => {
+  const list = inputSymbols.value.split(",").map(s=>s.trim().toUpperCase()).filter(Boolean);
+  if(list.length) { state.symbols = list; saveState(); buildSignalButtons(); tick(); }
+};
+inputBase.onchange = ()=> { state.base = Math.max(1, Number(inputBase.value||DEFAULT_BASE)); saveState(); renderTop(); };
+
+function buildSignalButtons(){
+  signalBtns.innerHTML='';
+  state.symbols.forEach(s=>{
+    const wr = document.createElement('div'); wr.className='row';
+    const bBuy = document.createElement('button'); bBuy.className='btn good'; bBuy.textContent=`BUY ${s}`;
+    const bSell= document.createElement('button'); bSell.className='btn bad';  bSell.textContent=`SELL ${s}`;
+    bBuy.onclick = async ()=>{ await doTrade(s,"buy"); };
+    bSell.onclick= async ()=>{ await doTrade(s,"sell"); };
+    wr.appendChild(bBuy); wr.appendChild(bSell);
+    signalBtns.appendChild(wr);
+  });
+}
+
+async function doTrade(sym, side){
+  const px = state.prices[sym] || 0;
+  if(px<=0){ alert("No price yet for "+sym); return; }
+  const s = Number(strength.value);
+  const notional = Math.max(5, state.base * Math.max(0.1, Math.min(2.0, s)));
+  if(side==="buy") buy(sym, px, notional);
+  else sell(sym, px, notional);
+  renderTable();
+  renderTop();
+}
+
+function renderTop(){
+  const up = $("#updated");
+  up.textContent = new Date().toLocaleString();
+  $("#poll").textContent = (POLL_MS/1000)+"s";
+  $("#base").value = state.base;
+  $("#symbols").value = state.symbols.join(",");
+  $("#rpnl").textContent = dollars(state.realized);
+  const eq = state.symbols.reduce((acc,s)=> acc + unrealized(s, state.prices[s]||0), state.realized);
+  $("#equity").textContent = dollars(eq);
+  $("#pause").textContent = state.paused ? "Resume" : "Pause";
+}
+
+function renderTable(){
+  tbody.innerHTML='';
+  state.symbols.forEach(s=>{
+    const px = state.prices[s] || 0;
+    const p = state.positions[s] || {qty:0,avg:0};
+    const u = unrealized(s, px);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><b>${s}</b></td>
+      <td class="right">${fmt(px)}</td>
+      <td class="right">${fmt(p.qty)}</td>
+      <td class="right">${fmt(p.avg)}</td>
+      <td class="right ${u>=0?'up':'down'}">${dollars(u)}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+/** ====== LOOP ====== **/
+let timer = null;
+async function tick(){
+  if(!state.paused){
+    const prices = await fetchPrices(state.symbols);
+    Object.assign(state.prices, prices);
+    saveState();
+  }
+  renderTable();
+  renderTop();
+}
+
+function startLoop(){
+  if(timer) clearInterval(timer);
+  timer = setInterval(tick, POLL_MS);
+}
+
+/** ====== INIT ====== **/
+(function(){
+  strengthVal.textContent = Number(strength.value).toFixed(1);
+  buildSignalButtons();
+  renderTop();
+  renderTable();
+  startLoop();
+  tick();
+})();
+</script>
+</body>
+</html>
