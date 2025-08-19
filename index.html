@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Wunder Paper Auto Trader — Pine DeadZone v2</title>
+  <style>
+    :root{--bg:#0b0f14;--card:#111826;--muted:#9fb3c8;--line:#1f2836;--good:#7ce38b;--bad:#ff8a8a}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:#e6edf3;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+    .container{max-width:1100px;margin:24px auto;padding:0 16px}
+    .h1{font-size:22px;margin:0 0 16px;display:flex;align-items:center;gap:10px}
+    .badge{background:#233046;color:var(--muted);padding:4px 8px;border-radius:999px;font-size:12px}
+    .grid{display:grid;grid-template-columns:1fr;gap:12px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:0 2px 10px rgba(0,0,0,.25)}
+    .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+    .btn{background:#20314a;border:1px solid #2d3e5b;color:#e6edf3;border-radius:10px;padding:8px 12px;cursor:pointer}
+    .btn.alt{background:#1b2538}.btn.good{background:#15351f;border-color:#1b4f2b}.btn.bad{background:#402127;border-color:#6c2a32}
+    .small{font-size:12px;color:var(--muted)}
+    input,select{background:#0c131d;color:#e6edf3;border:1px solid #2d3e5b;border-radius:8px;padding:8px}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left;font-size:14px}
+    th{color:#9fb3c8;font-weight:600}.right{text-align:right}.up{color:var(--good)}.down{color:var(--bad)}
+    .kv{display:flex;gap:18px;flex-wrap:wrap}.kv div{background:#0c131d;border:1px solid var(--line);padding:8px 12px;border-radius:10px}
+    @media(min-width:900px){.grid{grid-template-columns:1fr 1fr}}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="h1">📈 Wunder Paper Auto Trader <span class="badge">static / no backend</span></div>
+    <div class="grid">
+      <div class="card">
+        <div class="row">
+          <button class="btn" id="toggle">Start Auto</button>
+          <button class="btn alt" id="refresh">Refresh</button>
+          <button class="btn alt" id="reset">Reset Data</button>
+          <div class="small" id="updated">—</div>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <label class="small">Symbols</label>
+          <input id="symbols" type="text" value="BTCUSDT,XRPUSDT,DOGEUSDT,PEPEUSDT" style="flex:1">
+          <label class="small">Interval</label>
+          <select id="interval">
+            <option>1m</option><option>5m</option><option>15m</option>
+          </select>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <label class="small">Base (USDT)</label><input id="base" type="number" min="1" step="1" value="10" style="width:120px">
+          <label class="small">Strength</label><input id="strength" type="number" min="0.1" max="2" step="0.1" value="1.0" style="width:120px">
+          <label class="small">TP %</label><input id="tp" type="number" min="0.1" max="10" step="0.1" value="1.0" style="width:100px">
+          <label class="small">SL %</label><input id="sl" type="number" min="0.1" max="10" step="0.1" value="2.0" style="width:100px">
+        </div>
+      </div>
+      <div class="card">
+        <div><b>Status</b></div>
+        <div class="kv" style="margin-top:8px">
+          <div>Total Realized PnL: <b id="rpnl">+0.00</b></div>
+          <div>Equity (R+U): <b id="equity">+0.00</b></div>
+          <div>Auto: <b id="autoflag">OFF</b></div>
+        </div>
+      </div>
+      <div class="card" style="grid-column:1 / -1">
+        <h3 style="margin:0 0 10px">Prices & Positions</h3>
+        <table id="pp"><thead><tr>
+          <th>Symbol</th><th class="right">Price</th><th class="right">Qty</th><th class="right">Avg Entry</th>
+          <th class="right">UPnL</th><th>TP</th><th>SL</th><th>Signal</th>
+        </tr></thead><tbody></tbody></table>
+      </div>
+    </div>
+  </div>
+
+<script>
+// ---- State ----
+const LS_KEY="wunder_static_auto_v2";
+let state = load() || {symbols:["BTCUSDT","XRPUSDT","DOGEUSDT","PEPEUSDT"],interval:"1m",prices:{},pos:{},realized:0,auto:false,base:10,strength:1,tp:1,sl:2};
+function save(){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
+function load(){ try{ return JSON.parse(localStorage.getItem(LS_KEY)||""); }catch(e){ return null; } }
+function now(){ return Math.floor(Date.now()/1000); }
+function dollars(n){ n=Number(n||0); return (n>=0?'+':'')+n.toFixed(2); }
+function fmt(n,d=6){ n=Number(n||0); return n.toFixed(d); }
+function ensure(sym){ state.pos[sym]=state.pos[sym]||{qty:0,avg:0,tp:0,sl:0,openedAt:0}; return state.pos[sym]; }
+function unrealized(sym,px){ const p=ensure(sym); return p.qty>0 ? (px-p.avg)*p.qty : 0; }
+function notional(){ const s=Math.max(0.1,Math.min(2,Number(dom.strength.value||state.strength))); const b=Math.max(1,Number(dom.base.value||state.base)); return Math.max(5,s*b); }
+
+// ---- DOM ----
+const dom={
+  toggle:document.getElementById('toggle'),
+  refresh:document.getElementById('refresh'),
+  reset:document.getElementById('reset'),
+  updated:document.getElementById('updated'),
+  symbols:document.getElementById('symbols'),
+  interval:document.getElementById('interval'),
+  base:document.getElementById('base'),
+  strength:document.getElementById('strength'),
+  tp:document.getElementById('tp'),
+  sl:document.getElementById('sl'),
+  rpnl:document.getElementById('rpnl'),
+  equity:document.getElementById('equity'),
+  autoflag:document.getElementById('autoflag'),
+  tbody:document.querySelector('#pp tbody')
+};
+
+dom.interval.value = state.interval;
+dom.symbols.value = state.symbols.join(',');
+dom.base.value = state.base; dom.strength.value = state.strength; dom.tp.value = state.tp; dom.sl.value = state.sl;
+
+// ---- Utils SMA/EMA ----
+function sma(arr,period){ if(arr.length<period) return []; const out=[]; let sum=0; for(let i=0;i<arr.length;i++){ sum+=Number(arr[i]||0); if(i>=period) sum-=Number(arr[i-period]||0); if(i>=period-1) out.push(sum/period); } return out; }
+function ema(arr,period){ if(arr.length===0) return []; const k=2/(period+1); const out=[]; let prev=arr[0]; out.push(prev); for(let i=1;i<arr.length;i++){ const v=arr[i]*k+prev*(1-k); out.push(v); prev=v; } return out; }
+function last(a,n=0){ return a.length>n ? a[a.length-1-n] : undefined; }
+
+function computeSignal(candles){
+  const len=candles.length; if(len<205) return {sig:null};
+  const open=[], close=[], volume=[];
+  for(let i=0;i<len;i++){ open.push(+candles[i][1]); close.push(+candles[i][4]); volume.push(+candles[i][5]); }
+  const emaFast=ema(close,50), emaSlow=ema(close,200);
+  const c=close[len-1], o=open[len-1], c1=close[len-2], o1=open[len-2];
+  const bullEng=(c1<o1)&&(c>o)&&(c>o1)&&(o<c1);
+  const bearEng=(c1>o1)&&(c<o)&&(c<o1)&&(o>c1);
+  const avgVol20=sma(volume,20), v=volume[len-1], vma=last(avgVol20);
+  const volSpike = vma!==undefined ? v>vma*1.2 : false;
+  const eF=last(emaFast), eF1=last(emaFast,1), eS=last(emaSlow);
+  const up=(eF>eS)&&(eF1!==undefined?eF>eF1:false);
+  const down=(eF<eS)&&(eF1!==undefined?eF<eF1:false);
+  const buy = bullEng && volSpike && up;
+  const sell= bearEng && volSpike && down;
+  return {sig: buy?'BUY':(sell?'SELL':null)};
+}
+
+async function fetchKlines(sym,interval){
+  const url=`https://api.binance.com/api/v3/klines?symbol=${encodeURIComponent(sym)}&interval=${encodeURIComponent(interval)}&limit=210`;
+  try{ const r=await fetch(url,{cache:'no-store'}); if(!r.ok) throw new Error('klines'); return await r.json(); }catch(e){ return []; }
+}
+
+// ---- Render ----
+function buildRows(){ dom.tbody.innerHTML=''; state.symbols.forEach(s=>{ const tr=document.createElement('tr'); tr.dataset.sym=s; tr.innerHTML=`
+  <td><b>${s}</b></td>
+  <td class="right price">0</td>
+  <td class="right qty">0</td>
+  <td class="right avg">0</td>
+  <td class="right upnl">+0.00</td>
+  <td class="tp">—</td>
+  <td class="sl">—</td>
+  <td class="sig">—</td>`; dom.tbody.appendChild(tr); }); }
+function updateRow(sym){
+  const tr=dom.tbody.querySelector(`tr[data-sym="${sym}"]`); if(!tr) return;
+  const px=state.prices[sym]||0, p=ensure(sym), u=unrealized(sym,px);
+  tr.querySelector('.price').textContent=fmt(px);
+  tr.querySelector('.qty').textContent=fmt(p.qty);
+  tr.querySelector('.avg').textContent=fmt(p.avg);
+  const up=tr.querySelector('.upnl'); up.textContent=dollars(u); up.className=`right upnl ${u>=0?'up':'down'}`;
+  tr.querySelector('.tp').textContent=p.tp?fmt(p.tp):'—';
+  tr.querySelector('.sl').textContent=p.sl?fmt(p.sl):'—';
+}
+function setSig(sym, text){ const tr=dom.tbody.querySelector(`tr[data-sym="${sym}"]`); if(tr) tr.querySelector('.sig').textContent=text; }
+
+function renderTop(){
+  dom.updated.textContent=new Date().toLocaleString();
+  dom.autoflag.textContent=state.auto?'ON':'OFF';
+  let eq=state.realized; state.symbols.forEach(s=>eq+=unrealized(s,state.prices[s]||0));
+  dom.rpnl.textContent=dollars(state.realized); dom.equity.textContent=dollars(eq);
+}
+
+// ---- Trading (paper) ----
+async function maybeTrade(sym){
+  const candles=await fetchKlines(sym,state.interval);
+  if(candles.length===0){ setSig(sym,'no data'); return; }
+  const px=+candles[candles.length-1][4]; state.prices[sym]=px;
+  const p=ensure(sym);
+  // TP/SL
+  if(p.qty>0){
+    if(p.tp>0 && px>=p.tp){ state.realized+=(px-p.avg)*p.qty; p.qty=0; p.avg=0; p.tp=0; p.sl=0; p.openedAt=0; setSig(sym,'TP HIT'); updateRow(sym); renderTop(); save(); return; }
+    if(p.sl>0 && px<=p.sl){ state.realized+=(px-p.avg)*p.qty; p.qty=0; p.avg=0; p.tp=0; p.sl=0; p.openedAt=0; setSig(sym,'SL HIT'); updateRow(sym); renderTop(); save(); return; }
+  }
+  // Signals
+  const out=computeSignal(candles);
+  if(state.auto){
+    if(out.sig==='BUY' && p.qty===0){
+      const q=notional()/px; p.avg=px; p.qty=q;
+      const tpPct=Number(dom.tp.value||state.tp)/100, slPct=Number(dom.sl.value||state.sl)/100;
+      p.tp=px*(1+tpPct); p.sl=px*(1-slPct); p.openedAt=now(); setSig(sym,'BUY');
+    }else if(out.sig==='SELL' && p.qty>0){
+      state.realized+=(px-p.avg)*p.qty; p.qty=0; p.avg=0; p.tp=0; p.sl=0; p.openedAt=0; setSig(sym,'SELL');
+    }else{
+      setSig(sym,out.sig||'—');
+    }
+  }else{
+    setSig(sym,out.sig||'—');
+  }
+  updateRow(sym); renderTop(); save();
+}
+
+// ---- Events ----
+dom.toggle.onclick=()=>{ state.auto=!state.auto; save(); renderTop(); dom.toggle.textContent=state.auto?'Stop Auto':'Start Auto'; };
+dom.refresh.onclick=()=>tick(true);
+dom.reset.onclick=()=>{ if(confirm('Reset all local data?')){ localStorage.removeItem(LS_KEY); location.reload(); } };
+dom.symbols.onchange=()=>{ state.symbols=dom.symbols.value.split(',').map(s=>s.trim().toUpperCase()).filter(Boolean); save(); buildRows(); tick(true); };
+dom.interval.onchange=()=>{ state.interval=dom.interval.value; save(); tick(true); };
+dom.base.onchange=()=>{ state.base=Math.max(1,Number(dom.base.value||10)); save(); };
+dom.strength.onchange=()=>{ state.strength=Math.max(0.1,Math.min(2,Number(dom.strength.value||1))); save(); };
+dom.tp.onchange=()=>{ state.tp=Math.max(0.1,Number(dom.tp.value||1)); save(); };
+dom.sl.onchange=()=>{ state.sl=Math.max(0.1,Number(dom.sl.value||2)); save(); };
+
+async function tick(){ for(const s of state.symbols){ try{ await maybeTrade(s); }catch(e){} } renderTop(); }
+
+// init
+buildRows(); renderTop(); tick(); setInterval(tick, 2000);
+</script>
+</body>
+</html>
