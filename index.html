@@ -3,146 +3,121 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Wunder Paper Trader — Dead Zone Pro</title>
+  <title>Wunder Paper Trader — Dead Zone Pro (Final HTML)</title>
   <style>
     :root{--bg:#0f1115;--panel:#171a21;--muted:#8b93a7;--text:#e6e9ef;--accent:#00e0a4;--accent2:#17d1ff;--danger:#ff5a71}
     *{box-sizing:border-box}
     body{margin:0;background:var(--bg);color:var(--text);font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial}
-    .wrap{max-width:1200px;margin:0 auto;padding:16px}
-    .card{background:var(--panel);border:1px solid #232a38;border-radius:14px;padding:16px;box-shadow:0 6px 30px rgba(0,0,0,.25);margin-bottom:12px}
-    h1{margin:0 0 6px;font-size:20px} h2{margin:0 0 10px;font-size:16px;color:var(--muted)}
+    .wrap{max-width:1100px;margin:0 auto;padding:16px}
+    .card{background:var(--panel);border:1px solid #232a38;border-radius:14px;padding:16px;margin-bottom:12px}
+    h1{margin:0 0 8px;font-size:20px} h2{margin:0 0 10px;font-size:16px;color:var(--muted)}
     .row{display:flex;gap:12px;flex-wrap:wrap}
     .col{flex:1;min-width:220px}
-    label{display:block;font-size:12px;color:var(--muted);margin:8px 0 6px}
+    label{font-size:12px;color:var(--muted);display:block;margin:8px 0 6px}
     input,select,button{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #2a2f3d;background:#0f131a;color:var(--text)}
     button{cursor:pointer}
     button.primary{background:linear-gradient(90deg,var(--accent),var(--accent2));border:none;font-weight:700}
     button.ghost{background:#0f131a}
     button.danger{background:#2b0f14;border:1px solid #432028;color:#ffb1bd}
-    .grid{width:100%;border-collapse:collapse;font-size:12px}
-    .grid th,.grid td{border-bottom:1px solid #242a39;padding:8px 10px;text-align:right}
-    .grid th:first-child,.grid td:first-child{text-align:left}
+    table{width:100%;border-collapse:collapse;font-size:12px}
+    th,td{border-bottom:1px solid #242a39;padding:8px 10px;text-align:right}
+    th:first-child,td:first-child{text-align:left}
     .pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px}
-    .pill.long{background:rgba(0,224,164,.13);color:#8affda}
-    .pill.short{background:rgba(255,90,113,.13);color:#ff9aa9}
-    .stats{display:flex;gap:16px;flex-wrap:wrap}
-    .stat{background:#0f131a;border:1px solid #21283a;border-radius:12px;padding:12px 14px;flex:1;min-width:120px}
-    .big{font-size:18px;font-weight:700}
+    .pill.long{background:rgba(0,224,164,.15);color:#80ffd9}
+    .pill.short{background:rgba(255,90,113,.15);color:#ff9aa9}
     canvas{width:100%;height:240px;background:#0b0e14;border:1px solid #222534;border-radius:10px}
     .hint{color:#9aa3b2;font-size:12px}
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="card">
-      <h1>Wunder Paper Trader — Dead Zone Pro (Single HTML)</h1>
-      <div class="row">
-        <div class="col">
-          <label>Symbol (Binance)</label>
-          <input id="symbol" value="PEPEUSDT" />
-        </div>
-        <div class="col">
-          <label>Timeframe</label>
-          <select id="interval">
-            <option value="1m">1m</option>
-            <option value="5m" selected>5m</option>
-            <option value="15m">15m</option>
-            <option value="30m">30m</option>
-            <option value="1h">1h</option>
-          </select>
-        </div>
-        <div class="col">
-          <label>Signal Preset</label>
-          <select id="preset">
-            <option value="conservative">Conservative</option>
-            <option value="normal" selected>Normal</option>
-            <option value="aggressive">Aggressive</option>
-          </select>
-        </div>
-        <div class="col">
-          <label>Initial Balance (USDT)</label>
-          <input id="initBalance" type="number" value="1000" />
-        </div>
-      </div>
-      <div class="row">
-        <div class="col">
-          <label>Risk per Trade (%)</label>
-          <input id="riskPct" type="number" value="2" />
-        </div>
-        <div class="col">
-          <label>SL/TP (ATR x) — (SLx,TPx)</label>
-          <input id="atrMult" type="text" value="0.8,1.6" />
-          <div class="hint">Contoh: 0.8,1.6 → SL = 0.8×ATR, TP = 1.6×ATR</div>
-        </div>
-        <div class="col">
-          <label>Dead Zone Width (ATR x)</label>
-          <input id="dzWidth" type="text" value="0.8" />
-          <div class="hint">Lebar zona di sekitar EMA34. Trade hanya saat close keluar zona.</div>
-        </div>
-        <div class="col">
-          <label>Fees (bps, entry+exit)</label>
-          <input id="feeBps" type="number" value="10" />
-        </div>
-      </div>
-      <div class="row">
-        <div class="col">
-          <label>Long Only (Spot)</label>
-          <select id="longOnly"><option value="true" selected>Yes</option><option value="false">No</option></select>
-        </div>
-        <div class="col">
-          <label>Min Stop % (floor)</label>
-          <input id="minStopPct" type="text" value="0.2" />
-          <div class="hint">Dipakai saat ATR terlalu kecil (memecoin)</div>
-        </div>
-        <div class="col">
-          <label>Cooldown (bars)</label>
-          <input id="cooldownBars" type="number" value="10" />
-        </div>
-        <div class="col">
-          <label>&nbsp;</label>
-          <button id="exportBtn" class="ghost">⬇ Export Trades (CSV)</button>
-        </div>
-      </div>
-      <div class="row" style="margin-top:10px">
-        <div class="col"><button id="startBtn" class="primary">▶ Start Backtest</button></div>
-        <div class="col"><button id="liveBtn" class="ghost">⏱ Live Update (on/off)</button></div>
-        <div class="col"><button id="resetBtn" class="danger">⟲ Reset</button></div>
-      </div>
-      <div class="hint" id="lastSig">-</div>
-    </div>
-
+<div class="wrap">
+  <div class="card">
+    <h1>Wunder Paper Trader — Dead Zone Pro (Single HTML)</h1>
     <div class="row">
-      <div class="col card">
-        <h2>Equity Curve</h2>
-        <canvas id="equityChart"></canvas>
+      <div class="col">
+        <label>Symbol (Binance)</label>
+        <input id="symbol" value="PEPEUSDT">
       </div>
-      <div class="col card">
-        <h2>Stats</h2>
-        <div class="stats">
-          <div class="stat"><div class="hint">Balance</div><div class="big" id="statBalance">-</div></div>
-          <div class="stat"><div class="hint">P/L Total</div><div class="big" id="statPL">-</div></div>
-          <div class="stat"><div class="hint">Win Rate</div><div class="big" id="statWR">-</div></div>
-          <div class="stat"><div class="hint">Trades</div><div class="big" id="statTrades">-</div></div>
-        </div>
+      <div class="col">
+        <label>Timeframe</label>
+        <select id="interval"><option>1m</option><option selected>5m</option><option>15m</option><option>30m</option><option>1h</option></select>
+      </div>
+      <div class="col">
+        <label>Signal Preset</label>
+        <select id="preset"><option value="conservative">Conservative</option><option value="normal" selected>Normal</option><option value="aggressive">Aggressive</option></select>
+      </div>
+      <div class="col">
+        <label>Initial Balance (USDT)</label>
+        <input id="initBalance" value="1000">
       </div>
     </div>
-
-    <div class="card" style="margin-top:12px">
-      <h2>Trades</h2>
-      <table class="grid" id="tradesTable">
-        <thead>
-          <tr>
-            <th>#</th><th>Time</th><th>Side</th><th>Entry</th><th>Exit</th><th>Qty</th><th>SL</th><th>TP</th><th>P/L</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-      <div class="hint" id="noTrades" style="display:none;margin-top:8px">Belum ada trade. Coba preset <b>aggressive</b> atau timeframe <b>1m/5m</b>.</div>
+    <div class="row">
+      <div class="col">
+        <label>Risk per Trade (%)</label>
+        <input id="riskPct" value="2">
+      </div>
+      <div class="col">
+        <label>SL/TP (ATR x) — (SLx,TPx)</label>
+        <input id="atrMult" value="0.8,1.6">
+        <div class="hint">Contoh: 0.8,1.6 → SL=0.8×ATR, TP=1.6×ATR</div>
+      </div>
+      <div class="col">
+        <label>Dead Zone Width (ATR x)</label>
+        <input id="dzWidth" value="0.8">
+        <div class="hint">Lebar zona di sekitar EMA34 (EMA34 ± dz×ATR)</div>
+      </div>
+      <div class="col">
+        <label>Fees (bps, entry+exit)</label>
+        <input id="feeBps" value="10">
+      </div>
     </div>
+    <div class="row">
+      <div class="col">
+        <label>Long Only (Spot)</label>
+        <select id="longOnly"><option value="true">Yes</option><option value="false" selected>No</option></select>
+      </div>
+      <div class="col">
+        <label>Min Stop % (floor)</label>
+        <input id="minStopPct" value="0.2">
+        <div class="hint">Dipakai saat ATR terlalu kecil (memecoin)</div>
+      </div>
+      <div class="col">
+        <label>Cooldown (bars)</label>
+        <input id="cooldownBars" value="10">
+      </div>
+      <div class="col">
+        <label>&nbsp;</label>
+        <button id="exportBtn" class="ghost">⬇ Export Trades (CSV)</button>
+      </div>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <div class="col"><button id="startBtn" class="primary">▶ Start Backtest</button></div>
+      <div class="col"><button id="liveBtn" class="ghost">⏱ Live Update (on/off)</button></div>
+      <div class="col"><button id="resetBtn" class="danger">⟲ Reset</button></div>
+    </div>
+    <div class="hint" id="lastSig">-</div>
   </div>
 
+  <div class="card">
+    <h2>Equity Curve</h2>
+    <canvas id="equityChart"></canvas>
+  </div>
+  <div class="card">
+    <h2>Stats</h2>
+    <div id="stats">-</div>
+  </div>
+  <div class="card">
+    <h2>Trades</h2>
+    <table>
+      <thead><tr><th>#</th><th>Time</th><th>Side</th><th>Entry</th><th>Exit</th><th>Qty</th><th>SL</th><th>TP</th><th>P/L</th></tr></thead>
+      <tbody id="trades"></tbody>
+    </table>
+    <div class="hint" id="noTrades" style="display:none">Belum ada trade. Coba preset <b>Aggressive</b> atau timeframe <b>1m/5m</b>.</div>
+  </div>
+</div>
+
 <script>
-// ===== Helpers =====
+// ===== Utils =====
 const D=(v)=>parseFloat(String(v).replace(',','.'));
 const fmt=(n,d=6)=> (typeof n==='number'? n.toFixed(d): n);
 const median=(a)=>{const s=[...a].sort((x,y)=>x-y);const m=Math.floor(s.length/2);return s.length%2?s[m]:(s[m-1]+s[m])/2}
@@ -154,9 +129,9 @@ function atr(h,l,c,p=14){const out=[];let pc=c[0];let trs=[];for(let i=0;i<c.len
 // ===== Data =====
 async function fetchKlines(symbol, interval, limit=1000){
   const url=`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
-  const res=await fetch(url); if(!res.ok) throw new Error('Binance API error');
-  const raw=await res.json();
-  return raw.map(r=>({time:r[6],o:+r[1],h:+r[2],l:+r[3],c:+r[4],v:+r[5]}));
+  const r=await fetch(url); if(!r.ok) throw new Error('Binance API error');
+  const raw=await r.json();
+  return raw.map(x=>({time:x[6],o:+x[1],h:+x[2],l:+x[3],c:+x[4],v:+x[5]}));
 }
 
 // ===== Dead Zone Pro signals =====
@@ -164,27 +139,23 @@ function deadZonePro(candles,cfg){
   const c=candles.map(x=>x.c), h=candles.map(x=>x.h), l=candles.map(x=>x.l), v=candles.map(x=>x.v);
   const ema34=ema(c,34), ema200=ema(c,200), a14=atr(h,l,c,14), r14=rsi(c,14);
   const medV=sma(v,50).map((_,i)=> median(v.slice(Math.max(0,i-49), i+1)) );
-  const dzWidth = cfg.dzWidth; // ATR multiplier around EMA34
-  const sigs=candles.map(_=>({type:null, atr:null, reason:null, time:null}));
+  const dz = cfg.dzWidth;
+  const sigs=candles.map(_=>({type:null,atr:null,time:null,reason:null}));
 
   for(let i=2;i<c.length;i++){
-    const center = ema34[i]; if(center==null||a14[i]==null) continue;
-    const upper = center + a14[i]*dzWidth; const lower = center - a14[i]*dzWidth;
-    const wasInside = c[i-1] <= upper && c[i-1] >= lower; // previous close inside zone
-    const brokeUp   = c[i] > upper  && c[i-1] <= upper;   // breakout candle close above
-    const brokeDown = c[i] < lower  && c[i-1] >= lower;   // breakout candle close below
-
-    const body = Math.abs(c[i]-candles[i].o);
-    const minBody = 0.25*(a14[i]||0); // breakout candle body threshold
-    const vOK = medV[i]? v[i] >= 1.2*medV[i] : true; // volume confirmation
-
-    const trendUp = ema34[i] != null && ema200[i] != null && ema34[i] > ema200[i];
-    const trendDn = ema34[i] != null && ema200[i] != null && ema34[i] < ema200[i];
-
-    if(wasInside && brokeUp && trendUp && (r14[i]||0) > (cfg.rsiBuy||52) && vOK && body >= minBody){
-      sigs[i] = {type:'long', atr:a14[i], reason:`Breakout di atas DZ (EMA34±${cfg.dzWidth}×ATR) + TrendUp + RSI>${cfg.rsiBuy}` , time:candles[i].time};
-    } else if(wasInside && brokeDown && trendDn && (r14[i]||0) < (cfg.rsiSell||48) && vOK && body >= minBody){
-      sigs[i] = {type:'short', atr:a14[i], reason:`Breakdown di bawah DZ + TrendDn + RSI<${cfg.rsiSell}`, time:candles[i].time};
+    if(ema34[i]==null || a14[i]==null) continue;
+    const upper=ema34[i] + a14[i]*dz, lower=ema34[i] - a14[i]*dz;
+    const prevInside = c[i-1] <= upper && c[i-1] >= lower;
+    const brokeUp   = c[i] > upper  && c[i-1] <= upper;
+    const brokeDown = c[i] < lower  && c[i-1] >= lower;
+    const body = Math.abs(c[i]-candles[i].o), minBody = 0.25*(a14[i]||0);
+    const vOK = medV[i]? v[i] >= 1.2*medV[i] : true;
+    const trendUp = ema34[i] > (ema200[i]||ema34[i]);
+    const trendDn = ema34[i] < (ema200[i]||ema34[i]);
+    if(prevInside && brokeUp && trendUp && (r14[i]||0) > cfg.rsiBuy && vOK && body >= minBody){
+      sigs[i] = {type:'long', atr:a14[i], time:candles[i].time, reason:`Breakout di atas DZ + RSI>${cfg.rsiBuy}`};
+    } else if(prevInside && brokeDown && trendDn && (r14[i]||0) < cfg.rsiSell && vOK && body >= minBody){
+      sigs[i] = {type:'short', atr:a14[i], time:candles[i].time, reason:`Breakdown di bawah DZ + RSI<${cfg.rsiSell}`};
     }
   }
   return sigs;
@@ -192,16 +163,16 @@ function deadZonePro(candles,cfg){
 
 // ===== Backtest =====
 function backtest(candles, sigs, cfg){
-  let balance=cfg.initBalance; let eq=[balance]; let trades=[]; let pos=null; let lastTrade=-9999; const feeRate=(cfg.feeBps||0)/10000;
+  let balance=cfg.initBalance, trades=[], eq=[balance], pos=null, lastTrade=-9999; const feeRate=(cfg.feeBps||0)/10000;
   for(let i=1;i<candles.length;i++){
     const bar=candles[i];
     // manage
     if(pos){
       if(pos.side==='long'){
-        const hitSL=bar.l<=pos.sl; const hitTP=bar.h>=pos.tp;
+        const hitSL=bar.l<=pos.sl, hitTP=bar.h>=pos.tp;
         if(hitSL||hitTP){ const exit=hitSL?pos.sl:pos.tp; let pl=(exit-pos.entry)*pos.qty; const fees=(pos.entry*pos.qty+exit*pos.qty)*feeRate; pl-=fees; balance+=pl; trades.push({time:bar.time,side:'long',entry:pos.entry,exit,qty:pos.qty,sl:pos.sl,tp:pos.tp,pl}); pos=null; lastTrade=i; }
       } else {
-        const hitSL=bar.h>=pos.sl; const hitTP=bar.l<=pos.tp;
+        const hitSL=bar.h>=pos.sl, hitTP=bar.l<=pos.tp;
         if(hitSL||hitTP){ const exit=hitSL?pos.sl:pos.tp; let pl=(pos.entry-exit)*pos.qty; const fees=(pos.entry*pos.qty+exit*pos.qty)*feeRate; pl-=fees; balance+=pl; trades.push({time:bar.time,side:'short',entry:pos.entry,exit,qty:pos.qty,sl:pos.sl,tp:pos.tp,pl}); pos=null; lastTrade=i; }
       }
     }
@@ -209,68 +180,61 @@ function backtest(candles, sigs, cfg){
     const s=sigs[i];
     if(!pos && s && s.type && s.atr){
       if(cfg.longOnly && s.type==='short'){ eq.push(balance); continue; }
-      if(i-lastTrade < cfg.cooldownBars){ eq.push(balance); continue; }
-      const entry=candles[i].c; const floor=entry*(cfg.minStopPct/100); const atrEff=Math.max(s.atr||0, floor);
+      if(i - lastTrade < cfg.cooldownBars){ eq.push(balance); continue; }
+      const entry=bar.c; const floor=entry*(cfg.minStopPct/100); const atrEff=Math.max(s.atr||0,floor);
       const riskDollar=balance*(cfg.riskPct/100);
       if(s.type==='long'){
-        const sl=entry - atrEff*cfg.slx; const tp=entry + atrEff*cfg.tpx; const qty=riskDollar/Math.max(entry-sl,1e-12); pos={side:'long',entry,sl,tp,qty};
+        const sl=entry - atrEff*cfg.slx, tp=entry + atrEff*cfg.tpx; const qty=riskDollar/Math.max(entry-sl,1e-12); pos={side:'long',entry,sl,tp,qty};
       } else {
-        const sl=entry + atrEff*cfg.slx; const tp=entry - atrEff*cfg.tpx; const qty=riskDollar/Math.max(sl-entry,1e-12); pos={side:'short',entry,sl,tp,qty};
+        const sl=entry + atrEff*cfg.slx, tp=entry - atrEff*cfg.tpx; const qty=riskDollar/Math.max(sl-entry,1e-12); pos={side:'short',entry,sl,tp,qty};
       }
     }
-    const unreal = pos? (pos.side==='long'? (bar.c-pos.entry)*pos.qty : (pos.entry-bar.c)*pos.qty) : 0;
-    eq.push(balance+unreal);
+    const unreal = pos? (pos.side==='long'? (bar.c-pos.entry)*pos.qty : (pos.entry-bar.c)*pos.qty) : 0; eq.push(balance+unreal);
   }
   if(pos){ const last=candles[candles.length-1]; const exit=last.c; let pl=(pos.side==='long'? (exit-pos.entry)*pos.qty : (pos.entry-exit)*pos.qty); const fees=(pos.entry*pos.qty+exit*pos.qty)*feeRate; pl-=fees; balance+=pl; trades.push({time:last.time,side:pos.side,entry:pos.entry,exit,qty:pos.qty,sl:pos.sl,tp:pos.tp,pl}); pos=null; }
-  const wins=trades.filter(t=>t.pl>0).length; const wr=trades.length? (wins/trades.length*100):0; return {balance,equity:eq,trades,winRate:wr};
+  const wins=trades.filter(t=>t.pl>0).length, wr=trades.length? (wins/trades.length*100):0; return {balance,trades,equity:eq, winRate:wr};
 }
 
 // ===== Chart =====
-function drawChart(canvas,series){const ctx=canvas.getContext('2d'); const w=canvas.clientWidth, h=canvas.clientHeight; canvas.width=w*2; canvas.height=h*2; ctx.scale(2,2); ctx.clearRect(0,0,w,h); const pad=10; const min=Math.min(...series.filter(x=>isFinite(x))); const max=Math.max(...series.filter(x=>isFinite(x))); const xStep=(w-2*pad)/Math.max(1,series.length-1); ctx.lineWidth=2; ctx.beginPath(); series.forEach((v,i)=>{const x=pad+i*xStep; const y=h-pad-(((v-min)/(max-min||1))*(h-2*pad)); if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y)}); ctx.strokeStyle='#17d1ff'; ctx.stroke(); }
+function drawChart(canvas,series){let ctx=canvas.getContext('2d'),w=canvas.width=canvas.clientWidth,h=canvas.height=canvas.clientHeight;ctx.clearRect(0,0,w,h);const vals=series.filter(x=>isFinite(x));const min=Math.min(...vals),max=Math.max(...vals);ctx.beginPath();series.forEach((v,i)=>{const x=i/(series.length-1)*w;const y=h-( (v-min)/(max-min||1) )*h; if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y)});ctx.strokeStyle='#17d1ff';ctx.lineWidth=2;ctx.stroke()}
 
 // ===== UI =====
-const els={
-  symbol:document.getElementById('symbol'), interval:document.getElementById('interval'), preset:document.getElementById('preset'), initBalance:document.getElementById('initBalance'), riskPct:document.getElementById('riskPct'),
-  atrMult:document.getElementById('atrMult'), dzWidth:document.getElementById('dzWidth'), feeBps:document.getElementById('feeBps'), longOnly:document.getElementById('longOnly'), minStopPct:document.getElementById('minStopPct'), cooldownBars:document.getElementById('cooldownBars'),
-  startBtn:document.getElementById('startBtn'), liveBtn:document.getElementById('liveBtn'), resetBtn:document.getElementById('resetBtn'), exportBtn:document.getElementById('exportBtn'),
-  statBalance:document.getElementById('statBalance'), statPL:document.getElementById('statPL'), statWR:document.getElementById('statWR'), statTrades:document.getElementById('statTrades'), tradesTable:document.querySelector('#tradesTable tbody'), chart:document.getElementById('equityChart'), lastSig:document.getElementById('lastSig'), noTrades:document.getElementById('noTrades')
-};
+const els={symbol:document.getElementById('symbol'), interval:document.getElementById('interval'), preset:document.getElementById('preset'), initBalance:document.getElementById('initBalance'), riskPct:document.getElementById('riskPct'), atrMult:document.getElementById('atrMult'), dzWidth:document.getElementById('dzWidth'), feeBps:document.getElementById('feeBps'), longOnly:document.getElementById('longOnly'), minStopPct:document.getElementById('minStopPct'), cooldownBars:document.getElementById('cooldownBars'), startBtn:document.getElementById('startBtn'), liveBtn:document.getElementById('liveBtn'), resetBtn:document.getElementById('resetBtn'), exportBtn:document.getElementById('exportBtn'), stats:document.getElementById('stats'), trades:document.getElementById('trades'), chart:document.getElementById('equityChart'), lastSig:document.getElementById('lastSig'), noTrades:document.getElementById('noTrades')};
 let liveTimer=null, lastState=null;
 
 function parseCfg(){
-  const [slx,tpx] = String(els.atrMult.value).split(',').map(x=>D(x.trim()));
-  const presets={conservative:{rsiBuy:55,rsiSell:45}, normal:{rsiBuy:52,rsiSell:48}, aggressive:{rsiBuy:50,rsiSell:50}};
-  const P=presets[els.preset.value]||presets.normal;
-  return {symbol:els.symbol.value.trim().toUpperCase(), interval:els.interval.value, initBalance:D(els.initBalance.value), riskPct:D(els.riskPct.value), slx, tpx,
-    dzWidth:D(els.dzWidth.value), feeBps:D(els.feeBps.value), longOnly:(els.longOnly.value==='true'), minStopPct:D(els.minStopPct.value), cooldownBars:parseInt(els.cooldownBars.value||'10',10), ...P};
+  const [slx,tpx]=String(els.atrMult.value).split(',').map(x=>D(x.trim()));
+  const presets={conservative:{rsiBuy:55,rsiSell:45},normal:{rsiBuy:52,rsiSell:48},aggressive:{rsiBuy:50,rsiSell:50}}; const P=presets[els.preset.value]||presets.normal;
+  return {symbol:els.symbol.value.trim().toUpperCase(), interval:els.interval.value, initBalance:D(els.initBalance.value), riskPct:D(els.riskPct.value), slx, tpx, dzWidth:D(els.dzWidth.value), feeBps:D(els.feeBps.value), longOnly:(els.longOnly.value==='true'), minStopPct:D(els.minStopPct.value), cooldownBars:parseInt(els.cooldownBars.value||'10',10), ...P};
 }
 
-function render(trades, equity, balance, initBalance){
-  els.tradesTable.innerHTML='';
-  trades.forEach((t,idx)=>{ const tr=document.createElement('tr'); const time=new Date(t.time).toLocaleString(); tr.innerHTML=`<td>${idx+1}</td><td>${time}</td><td>${t.side==='long'?'<span class="pill long">LONG</span>':'<span class="pill short">SHORT</span>'}</td><td>${fmt(t.entry)}</td><td>${fmt(t.exit)}</td><td>${fmt(t.qty,4)}</td><td>${fmt(t.sl)}</td><td>${fmt(t.tp)}</td><td style="color:${t.pl>=0?'#80ffd9':'#ff9aa9'}">${fmt(t.pl,4)}</td>`; els.tradesTable.appendChild(tr); });
-  els.noTrades.style.display = trades.length? 'none':'block';
-  const pl=balance-initBalance; const plPct=initBalance? (pl/initBalance*100):0; els.statBalance.textContent=`${fmt(balance,2)} USDT`; els.statPL.textContent=`${fmt(pl,2)} (${fmt(plPct,2)}%)`; const wins=trades.filter(t=>t.pl>0).length; const wr=trades.length? (wins/trades.length*100):0; els.statWR.textContent=`${fmt(wr,1)}%`; els.statTrades.textContent=trades.length; drawChart(els.chart, equity);
+function render(res, init){
+  // stats
+  const pl=res.balance-init, plPct=init? (pl/init*100):0; els.stats.textContent=`Balance: ${fmt(res.balance,2)} USDT | P/L: ${fmt(pl,2)} (${fmt(plPct,2)}%) | WinRate: ${fmt(res.winRate,1)}% | Trades: ${res.trades.length}`;
+  // table
+  els.trades.innerHTML=''; res.trades.forEach((t,i)=>{ const tr=document.createElement('tr'); const time=new Date(t.time).toLocaleString(); tr.innerHTML=`<td>${i+1}</td><td>${time}</td><td><span class="pill ${t.side}">${t.side.toUpperCase()}</span></td><td>${fmt(t.entry)}</td><td>${fmt(t.exit)}</td><td>${fmt(t.qty,4)}</td><td>${fmt(t.sl)}</td><td>${fmt(t.tp)}</td><td style="color:${t.pl>=0?'#80ffd9':'#ff9aa9'}">${fmt(t.pl,2)}</td>`; els.trades.appendChild(tr); }); els.noTrades.style.display = res.trades.length? 'none':'block';
+  drawChart(els.chart,res.equity);
 }
 
-function toCSV(trades){ const head=['#','Time','Side','Entry','Exit','Qty','SL','TP','P/L']; const rows=trades.map((t,i)=>[i+1,new Date(t.time).toISOString(),t.side,t.entry,t.exit,t.qty,t.sl,t.tp,t.pl]); return [head.join(','),...rows.map(r=>r.join(','))].join('\n'); }
+function updateLastSignal(candles,sigs){ for(let i=sigs.length-1;i>=0;i--){ if(sigs[i] && sigs[i].type){ els.lastSig.textContent = `Last: ${sigs[i].type.toUpperCase()} @ ${new Date(candles[i].time).toLocaleString()} — ${sigs[i].reason}`; return; } } els.lastSig.textContent='-'; }
 
-async function runBacktest(live=false){
+async function run(live=false){
   const cfg=parseCfg();
   const candles=await fetchKlines(cfg.symbol,cfg.interval,1000);
-  const sigs=deadZonePro(candles,{dzWidth:cfg.dzWidth,rsiBuy:cfg.rsiBuy,rsiSell:cfg.rsiSell});
-  // find last signal text
-  for(let i=sigs.length-1;i>=0;i--){ if(sigs[i] && sigs[i].type){ els.lastSig.textContent = `Last: ${sigs[i].type.toUpperCase()} @ ${new Date(candles[i].time).toLocaleString()} — ${sigs[i].reason}`; break; } }
-  const result=backtest(candles,sigs,cfg); lastState={cfg,candles,sigs,result}; render(result.trades,result.equity,result.balance,cfg.initBalance);
-  if(live){ if(liveTimer) clearInterval(liveTimer); liveTimer=setInterval(async()=>{ try{ const n=await fetchKlines(cfg.symbol,cfg.interval,1000); const s=deadZonePro(n,{dzWidth:cfg.dzWidth,rsiBuy:cfg.rsiBuy,rsiSell:cfg.rsiSell}); const r=backtest(n,s,cfg); lastState={cfg,candles:n,sigs:s,result:r}; render(r.trades,r.equity,r.balance,cfg.initBalance);}catch(e){console.error(e)} }, 30000); }
+  const sigs=deadZonePro(candles,cfg);
+  updateLastSignal(candles,sigs);
+  const res=backtest(candles,sigs,cfg); lastState={cfg,candles,sigs,res}; render(res,cfg.initBalance);
+  if(live){ if(liveTimer) clearInterval(liveTimer); liveTimer=setInterval(async()=>{ try{ const n=await fetchKlines(cfg.symbol,cfg.interval,1000); const s=deadZonePro(n,cfg); updateLastSignal(n,s); const r=backtest(n,s,cfg); lastState={cfg,candles:n,sigs:s,res:r}; render(r,cfg.initBalance);} catch(e){ console.error(e); } }, 30000); }
 }
 
-els.startBtn.onclick=()=>runBacktest(false);
-els.liveBtn.onclick=()=>{ if(liveTimer){clearInterval(liveTimer); liveTimer=null; els.liveBtn.textContent='⏱ Live Update (on/off)'; } else { runBacktest(true); els.liveBtn.textContent='⏱ Live Update: ON'; } };
-els.resetBtn.onclick=()=>{ if(liveTimer){clearInterval(liveTimer); liveTimer=null;} lastState=null; els.tradesTable.innerHTML=''; drawChart(document.getElementById('equityChart'),[0,0]); els.statBalance.textContent='-'; els.statPL.textContent='-'; els.statWR.textContent='-'; els.statTrades.textContent='-'; els.lastSig.textContent='-';};
-els.exportBtn.onclick=()=>{ if(!lastState?.result?.trades?.length){alert('Belum ada trade');return} const csv=toCSV(lastState.result.trades); const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=`trades_${(new Date()).toISOString().slice(0,19)}.csv`; a.click(); URL.revokeObjectURL(url); }
+els.startBtn.onclick=()=>run(false);
+els.liveBtn.onclick=()=>{ if(liveTimer){clearInterval(liveTimer); liveTimer=null; els.liveBtn.textContent='⏱ Live Update (on/off)'; } else { run(true); els.liveBtn.textContent='⏱ Live Update: ON'; } };
+els.resetBtn.onclick=()=>{ if(liveTimer){clearInterval(liveTimer); liveTimer=null;} lastState=null; els.trades.innerHTML=''; els.stats.textContent='-'; els.lastSig.textContent='-'; drawChart(els.chart,[0,0]); };
+els.exportBtn.onclick=()=>{ if(!lastState?.res?.trades?.length){alert('Belum ada trade');return} const head=['#','Time','Side','Entry','Exit','Qty','SL','TP','P/L']; const rows=lastState.res.trades.map((t,i)=>[i+1,new Date(t.time).toISOString(),t.side,t.entry,t.exit,t.qty,t.sl,t.tp,t.pl]); const csv=[head.join(','),...rows.map(r=>r.join(','))].join('
+'); const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=`trades_${(new Date()).toISOString().slice(0,19)}.csv`; a.click(); URL.revokeObjectURL(url); };
 
-// Autorun (non-live)
-runBacktest(false).catch(console.error);
+// autorun once (non-live)
+run(false).catch(console.error);
 </script>
 </body>
 </html>
