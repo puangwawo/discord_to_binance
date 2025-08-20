@@ -3,20 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Wunder Paper Trader — v2</title>
+  <title>Wunder Paper Trader — Dead Zone Pro</title>
   <style>
-    :root{--bg:#0e1116;--panel:#171b22;--muted:#8b93a7;--text:#e8ecf1;--accent:#17d1ff;--accent2:#00e0a4;--danger:#ff5a71}
+    :root{--bg:#0f1115;--panel:#171a21;--muted:#8b93a7;--text:#e6e9ef;--accent:#00e0a4;--accent2:#17d1ff;--danger:#ff5a71}
     *{box-sizing:border-box}
     body{margin:0;background:var(--bg);color:var(--text);font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial}
     .wrap{max-width:1200px;margin:0 auto;padding:16px}
-    .card{background:var(--panel);border:1px solid #232a38;border-radius:14px;padding:16px;box-shadow:0 6px 30px rgba(0,0,0,.25)}
+    .card{background:var(--panel);border:1px solid #232a38;border-radius:14px;padding:16px;box-shadow:0 6px 30px rgba(0,0,0,.25);margin-bottom:12px}
     h1{margin:0 0 6px;font-size:20px} h2{margin:0 0 10px;font-size:16px;color:var(--muted)}
     .row{display:flex;gap:12px;flex-wrap:wrap}
     .col{flex:1;min-width:220px}
     label{display:block;font-size:12px;color:var(--muted);margin:8px 0 6px}
     input,select,button{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #2a2f3d;background:#0f131a;color:var(--text)}
     button{cursor:pointer}
-    button.primary{background:linear-gradient(90deg,var(--accent2),var(--accent));border:none;font-weight:700}
+    button.primary{background:linear-gradient(90deg,var(--accent),var(--accent2));border:none;font-weight:700}
     button.ghost{background:#0f131a}
     button.danger{background:#2b0f14;border:1px solid #432028;color:#ffb1bd}
     .grid{width:100%;border-collapse:collapse;font-size:12px}
@@ -30,13 +30,12 @@
     .big{font-size:18px;font-weight:700}
     canvas{width:100%;height:240px;background:#0b0e14;border:1px solid #222534;border-radius:10px}
     .hint{color:#9aa3b2;font-size:12px}
-    .footer{color:#8190a9;font-size:12px;margin-top:6px}
   </style>
 </head>
 <body>
   <div class="wrap">
-    <div class="card" style="margin-bottom:12px">
-      <h1>Wunder Paper Trader (Single HTML) — v2</h1>
+    <div class="card">
+      <h1>Wunder Paper Trader — Dead Zone Pro (Single HTML)</h1>
       <div class="row">
         <div class="col">
           <label>Symbol (Binance)</label>
@@ -53,35 +52,32 @@
           </select>
         </div>
         <div class="col">
-          <label>Strategy</label>
-          <select id="strategy">
-            <option value="ema_rsi" selected>EMA Trend + RSI Pullback</option>
-            <option value="bounce24">Bounce 24h Low (reclaim)</option>
-            <option value="vol_break">Volume Spike Breakout</option>
-          </select>
-        </div>
-        <div class="col">
-          <label>Signal Mode</label>
-          <select id="signalMode">
+          <label>Signal Preset</label>
+          <select id="preset">
             <option value="conservative">Conservative</option>
             <option value="normal" selected>Normal</option>
             <option value="aggressive">Aggressive</option>
           </select>
         </div>
-      </div>
-      <div class="row">
         <div class="col">
           <label>Initial Balance (USDT)</label>
           <input id="initBalance" type="number" value="1000" />
         </div>
+      </div>
+      <div class="row">
         <div class="col">
           <label>Risk per Trade (%)</label>
           <input id="riskPct" type="number" value="2" />
         </div>
         <div class="col">
-          <label>ATR SL / TP (x)</label>
-          <input id="atrMult" type="text" value="0.8,1.2,2.5" />
-          <div class="hint">Format: SLx,TP1x,TP2x — contoh 0.8,1.2,2.5</div>
+          <label>SL/TP (ATR x) — (SLx,TPx)</label>
+          <input id="atrMult" type="text" value="0.8,1.6" />
+          <div class="hint">Contoh: 0.8,1.6 → SL = 0.8×ATR, TP = 1.6×ATR</div>
+        </div>
+        <div class="col">
+          <label>Dead Zone Width (ATR x)</label>
+          <input id="dzWidth" type="text" value="0.8" />
+          <div class="hint">Lebar zona di sekitar EMA34. Trade hanya saat close keluar zona.</div>
         </div>
         <div class="col">
           <label>Fees (bps, entry+exit)</label>
@@ -95,7 +91,7 @@
         </div>
         <div class="col">
           <label>Min Stop % (floor)</label>
-          <input id="minStopPct" type="number" value="0.2" />
+          <input id="minStopPct" type="text" value="0.2" />
           <div class="hint">Dipakai saat ATR terlalu kecil (memecoin)</div>
         </div>
         <div class="col">
@@ -108,11 +104,11 @@
         </div>
       </div>
       <div class="row" style="margin-top:10px">
-        <div class="col"><button id="startBtn" class="primary">▶ Start Backtest (to latest)</button></div>
+        <div class="col"><button id="startBtn" class="primary">▶ Start Backtest</button></div>
         <div class="col"><button id="liveBtn" class="ghost">⏱ Live Update (on/off)</button></div>
         <div class="col"><button id="resetBtn" class="danger">⟲ Reset</button></div>
       </div>
-      <div class="footer">Data: <b>Binance public API</b>. Ini <b>paper trading</b> — tidak mengeksekusi order asli. Kalau di GitHub Pages, tinggal upload file ini saja.</div>
+      <div class="hint" id="lastSig">-</div>
     </div>
 
     <div class="row">
@@ -128,7 +124,6 @@
           <div class="stat"><div class="hint">Win Rate</div><div class="big" id="statWR">-</div></div>
           <div class="stat"><div class="hint">Trades</div><div class="big" id="statTrades">-</div></div>
         </div>
-        <div class="hint" id="lastSig">-</div>
       </div>
     </div>
 
@@ -137,201 +132,144 @@
       <table class="grid" id="tradesTable">
         <thead>
           <tr>
-            <th>#</th><th>Time</th><th>Side</th><th>Entry</th><th>Exit</th><th>Qty</th><th>SL</th><th>TP1</th><th>TP2</th><th>P/L</th>
+            <th>#</th><th>Time</th><th>Side</th><th>Entry</th><th>Exit</th><th>Qty</th><th>SL</th><th>TP</th><th>P/L</th>
           </tr>
         </thead>
         <tbody></tbody>
       </table>
-      <div class="hint" id="noTrades" style="display:none;margin-top:8px">Belum ada trade. Coba ganti <b>Signal Mode</b> ke <b>aggressive</b> atau timeframe ke <b>5m</b>.</div>
+      <div class="hint" id="noTrades" style="display:none;margin-top:8px">Belum ada trade. Coba preset <b>aggressive</b> atau timeframe <b>1m/5m</b>.</div>
     </div>
   </div>
 
 <script>
-// ===== Utils =====
-const fmt = (n, d=6)=> (typeof n==='number'? n.toFixed(d): n);
-const median = (arr)=>{const s=[...arr].sort((a,b)=>a-b);const m=Math.floor(s.length/2);return s.length%2? s[m]:(s[m-1]+s[m])/2}
-const sma=(arr,p)=>{const out=[];let sum=0;for(let i=0;i<arr.length;i++){sum+=arr[i];if(i>=p)sum-=arr[i-p];out.push(i>=p-1?sum/p:null)}return out}
-const ema=(arr,p)=>{const out=[];const k=2/(p+1);let prev=null;for(let i=0;i<arr.length;i++){const v=arr[i];if(v==null){out.push(prev);continue}prev= prev==null? v : (v - prev)*k + prev;out.push(prev)}return out}
-function rsi(arr,p=14){if(!arr||arr.length<p+2)return Array(arr.length).fill(null);const out=Array(arr.length).fill(null);let gains=0,losses=0;for(let i=1;i<=p;i++){const ch=arr[i]-arr[i-1];gains+=Math.max(ch,0);losses+=Math.max(-ch,0)}let avgGain=gains/p,avgLoss=losses/p;out[p]=100-100/(1+(avgGain/(avgLoss||1e-9)));for(let i=p+1;i<arr.length;i++){const ch=arr[i]-arr[i-1];const g=Math.max(ch,0),l=Math.max(-ch,0);avgGain=(avgGain*(p-1)+g)/p;avgLoss=(avgLoss*(p-1)+l)/p;const rs=avgGain/(avgLoss||1e-9);out[i]=100-100/(1+rs)}return out}
-function atr(high,low,close,p=14){const out=[];let prevClose=close[0];let trArr=[];for(let i=0;i<close.length;i++){const h=high[i],l=low[i],c=close[i];const tr=Math.max(h-l,Math.abs(h-prevClose),Math.abs(l-prevClose));prevClose=c;trArr.push(tr);if(trArr.length<p){out.push(null)} else if(trArr.length===p){out.push(trArr.reduce((a,b)=>a+b,0)/p)} else {const prev=out[out.length-1];out.push((prev*(p-1)+tr)/p)}}return out}
+// ===== Helpers =====
+const D=(v)=>parseFloat(String(v).replace(',','.'));
+const fmt=(n,d=6)=> (typeof n==='number'? n.toFixed(d): n);
+const median=(a)=>{const s=[...a].sort((x,y)=>x-y);const m=Math.floor(s.length/2);return s.length%2?s[m]:(s[m-1]+s[m])/2}
+const sma=(a,p)=>{const out=[];let sum=0;for(let i=0;i<a.length;i++){sum+=a[i];if(i>=p)sum-=a[i-p];out.push(i>=p-1?sum/p:null)}return out}
+const ema=(a,p)=>{const out=[];const k=2/(p+1);let prev=null;for(let i=0;i<a.length;i++){const v=a[i];prev=prev==null?v:(v-prev)*k+prev;out.push(prev)}return out}
+function rsi(a,p=14){if(!a||a.length<p+2)return Array(a.length).fill(null);const out=Array(a.length).fill(null);let g=0,l=0;for(let i=1;i<=p;i++){const d=a[i]-a[i-1];g+=Math.max(d,0);l+=Math.max(-d,0)}let ag=g/p,al=l/p;out[p]=100-100/(1+(ag/(al||1e-9)));for(let i=p+1;i<a.length;i++){const d=a[i]-a[i-1];const G=Math.max(d,0),L=Math.max(-d,0);ag=(ag*(p-1)+G)/p;al=(al*(p-1)+L)/p;const rs=ag/(al||1e-9);out[i]=100-100/(1+rs)}return out}
+function atr(h,l,c,p=14){const out=[];let pc=c[0];let trs=[];for(let i=0;i<c.length;i++){const H=h[i],L=l[i],C=c[i];const tr=Math.max(H-L,Math.abs(H-pc),Math.abs(L-pc));pc=C;trs.push(tr);if(trs.length<p){out.push(null)}else if(trs.length===p){out.push(trs.reduce((a,b)=>a+b,0)/p)}else{const prev=out[out.length-1];out.push((prev*(p-1)+tr)/p)}}return out}
 
-// ===== Binance fetch =====
+// ===== Data =====
 async function fetchKlines(symbol, interval, limit=1000){
   const url=`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
-  const res = await fetch(url);
-  if(!res.ok) throw new Error('Binance API error');
-  const raw = await res.json();
-  return raw.map(r=>({openTime:r[0],open:+r[1],high:+r[2],low:+r[3],close:+r[4],volume:+r[5],closeTime:r[6]}))
+  const res=await fetch(url); if(!res.ok) throw new Error('Binance API error');
+  const raw=await res.json();
+  return raw.map(r=>({time:r[6],o:+r[1],h:+r[2],l:+r[3],c:+r[4],v:+r[5]}));
 }
 
-// ===== Strategies & signals =====
-function signalsFromStrategy(candles, strat, cfg){
-  const close=candles.map(c=>c.close), high=candles.map(c=>c.high), low=candles.map(c=>c.low), vol=candles.map(c=>c.volume);
-  const ema50=ema(close,50), ema200=ema(close,200), rsi14=rsi(close,14), a14=atr(high,low,close,14);
-  const medVol50=sma(vol,50).map((_,i)=>median(vol.slice(Math.max(0,i-49),i+1)));
-  const intervalMs=(candles[1]?.closeTime-candles[0]?.closeTime)||60_000;
-  const bars24h=Math.max(1,Math.round(24*60*60_000/intervalMs));
+// ===== Dead Zone Pro signals =====
+function deadZonePro(candles,cfg){
+  const c=candles.map(x=>x.c), h=candles.map(x=>x.h), l=candles.map(x=>x.l), v=candles.map(x=>x.v);
+  const ema34=ema(c,34), ema200=ema(c,200), a14=atr(h,l,c,14), r14=rsi(c,14);
+  const medV=sma(v,50).map((_,i)=> median(v.slice(Math.max(0,i-49), i+1)) );
+  const dzWidth = cfg.dzWidth; // ATR multiplier around EMA34
+  const sigs=candles.map(_=>({type:null, atr:null, reason:null, time:null}));
 
-  const presets={conservative:{rsiBuy:45,rsiSell:55,volMult:1.2},normal:{rsiBuy:43,rsiSell:57,volMult:1.0},aggressive:{rsiBuy:40,rsiSell:60,volMult:0.9}};
-  const P=presets[cfg.signalMode]||presets.normal;
+  for(let i=2;i<c.length;i++){
+    const center = ema34[i]; if(center==null||a14[i]==null) continue;
+    const upper = center + a14[i]*dzWidth; const lower = center - a14[i]*dzWidth;
+    const wasInside = c[i-1] <= upper && c[i-1] >= lower; // previous close inside zone
+    const brokeUp   = c[i] > upper  && c[i-1] <= upper;   // breakout candle close above
+    const brokeDown = c[i] < lower  && c[i-1] >= lower;   // breakout candle close below
 
-  const sigs=candles.map((c,i)=>({i,time:c.closeTime,type:null,reason:null,atr:a14[i]}));
+    const body = Math.abs(c[i]-candles[i].o);
+    const minBody = 0.25*(a14[i]||0); // breakout candle body threshold
+    const vOK = medV[i]? v[i] >= 1.2*medV[i] : true; // volume confirmation
 
-  for(let i=1;i<candles.length;i++){
-    const upTrend=ema50[i]!=null&&ema200[i]!=null&&ema50[i]>ema200[i];
-    const dnTrend=ema50[i]!=null&&ema200[i]!=null&&ema50[i]<ema200[i];
-    const vOK=medVol50[i]!=null?vol[i]>=medVol50[i]*P.volMult:true;
+    const trendUp = ema34[i] != null && ema200[i] != null && ema34[i] > ema200[i];
+    const trendDn = ema34[i] != null && ema200[i] != null && ema34[i] < ema200[i];
 
-    if(strat==='ema_rsi'){
-      const crossUp=rsi14[i-1]!=null && rsi14[i-1]<P.rsiBuy && rsi14[i]>=P.rsiBuy;
-      const crossDn=rsi14[i-1]!=null && rsi14[i-1]>P.rsiSell && rsi14[i]<=P.rsiSell;
-      if(upTrend && crossUp && close[i]>=ema50[i] && vOK){sigs[i].type='long';sigs[i].reason=`EMA up + RSI↑${P.rsiBuy}`}
-      if(dnTrend && crossDn && close[i]<=ema50[i] && vOK){sigs[i].type='short';sigs[i].reason=`EMA down + RSI↓${P.rsiSell}`}
-    }
-
-    if(strat==='bounce24'){
-      const from=Math.max(0,i-bars24h); const slice=candles.slice(from,i+1);
-      const low24=Math.min(...slice.map(x=>x.low));
-      const high24=Math.max(...slice.map(x=>x.high));
-      const prevTouchL=close[i-1]<=low24*1.0004; const reclaim=close[i]>low24 && close[i]>close[i-1];
-      const prevTouchH=close[i-1]>=high24*0.9996; const reject=close[i]<high24 && close[i]<close[i-1];
-      if(prevTouchL && reclaim && vOK) {sigs[i].type='long';sigs[i].reason='24h Low reclaim'}
-      if(prevTouchH && reject && vOK) {sigs[i].type='short';sigs[i].reason='24h High reject'}
-    }
-
-    if(strat==='vol_break'){
-      const vOK2=medVol50[i]!=null && vol[i]>medVol50[i]*1.4;
-      if(close[i]>high[i-1] && vOK2){sigs[i].type='long';sigs[i].reason='Break↑ + Vol spike'}
-      if(close[i]<low[i-1] && vOK2){sigs[i].type='short';sigs[i].reason='Break↓ + Vol spike'}
+    if(wasInside && brokeUp && trendUp && (r14[i]||0) > (cfg.rsiBuy||52) && vOK && body >= minBody){
+      sigs[i] = {type:'long', atr:a14[i], reason:`Breakout di atas DZ (EMA34±${cfg.dzWidth}×ATR) + TrendUp + RSI>${cfg.rsiBuy}` , time:candles[i].time};
+    } else if(wasInside && brokeDown && trendDn && (r14[i]||0) < (cfg.rsiSell||48) && vOK && body >= minBody){
+      sigs[i] = {type:'short', atr:a14[i], reason:`Breakdown di bawah DZ + TrendDn + RSI<${cfg.rsiSell}`, time:candles[i].time};
     }
   }
-  return {sigs,atr:a14};
+  return sigs;
 }
 
-// ===== Backtest Engine =====
+// ===== Backtest =====
 function backtest(candles, sigs, cfg){
-  let balance=cfg.initBalance; let eq=[balance]; let trades=[]; let pos=null;
-  const {slx,tp1x,tp2x,riskPct,longOnly,feeBps,minStopPct,cooldownBars}=cfg; const feeRate=(feeBps||0)/10000; let lastTradeBar=-9999;
-
+  let balance=cfg.initBalance; let eq=[balance]; let trades=[]; let pos=null; let lastTrade=-9999; const feeRate=(cfg.feeBps||0)/10000;
   for(let i=1;i<candles.length;i++){
-    const c=candles[i];
+    const bar=candles[i];
+    // manage
     if(pos){
       if(pos.side==='long'){
-        const hitSL=c.low<=pos.sl; const hitTP2=c.high>=pos.tp2; const hitTP1=c.high>=pos.tp1;
-        if(hitSL||hitTP2||hitTP1){
-          const exit=hitSL?pos.sl:(hitTP2?pos.tp2:pos.tp1);
-          let pl=(exit-pos.entry)*pos.qty; const fees=(pos.entry*pos.qty+exit*pos.qty)*feeRate; pl-=fees; balance+=pl;
-          trades.push({iClose:i,iOpen:pos.iOpen,time:c.closeTime,side:'long',entry:pos.entry,exit,qty:pos.qty,sl:pos.sl,tp1:pos.tp1,tp2:pos.tp2,pl}); pos=null; lastTradeBar=i;
-        }
+        const hitSL=bar.l<=pos.sl; const hitTP=bar.h>=pos.tp;
+        if(hitSL||hitTP){ const exit=hitSL?pos.sl:pos.tp; let pl=(exit-pos.entry)*pos.qty; const fees=(pos.entry*pos.qty+exit*pos.qty)*feeRate; pl-=fees; balance+=pl; trades.push({time:bar.time,side:'long',entry:pos.entry,exit,qty:pos.qty,sl:pos.sl,tp:pos.tp,pl}); pos=null; lastTrade=i; }
       } else {
-        const hitSL=c.high>=pos.sl; const hitTP2=c.low<=pos.tp2; const hitTP1=c.low<=pos.tp1;
-        if(hitSL||hitTP2||hitTP1){
-          const exit=hitSL?pos.sl:(hitTP2?pos.tp2:pos.tp1);
-          let pl=(pos.entry-exit)*pos.qty; const fees=(pos.entry*pos.qty+exit*pos.qty)*feeRate; pl-=fees; balance+=pl;
-          trades.push({iClose:i,iOpen:pos.iOpen,time:c.closeTime,side:'short',entry:pos.entry,exit,qty:pos.qty,sl:pos.sl,tp1:pos.tp1,tp2:pos.tp2,pl}); pos=null; lastTradeBar=i;
-        }
+        const hitSL=bar.h>=pos.sl; const hitTP=bar.l<=pos.tp;
+        if(hitSL||hitTP){ const exit=hitSL?pos.sl:pos.tp; let pl=(pos.entry-exit)*pos.qty; const fees=(pos.entry*pos.qty+exit*pos.qty)*feeRate; pl-=fees; balance+=pl; trades.push({time:bar.time,side:'short',entry:pos.entry,exit,qty:pos.qty,sl:pos.sl,tp:pos.tp,pl}); pos=null; lastTrade=i; }
       }
     }
-
-    if(!pos && sigs[i].type && sigs[i].atr){
-      if(longOnly && sigs[i].type==='short'){ eq.push(balance); continue; }
-      if(i - lastTradeBar < (cooldownBars||10)){ eq.push(balance); continue; }
-      const entry=candles[i].close; const riskDollar=balance*(riskPct/100);
-      const atrRaw=sigs[i].atr; const floor=entry*(minStopPct/100); const atrEff=Math.max(atrRaw||0,floor);
-      if(!atrEff||atrEff<=0){ eq.push(balance); continue; }
-      if(sigs[i].type==='long'){
-        const sl=entry-atrEff*slx, tp1=entry+atrEff*tp1x, tp2=entry+atrEff*tp2x; const stopDist=Math.max(entry-sl,floor);
-        const qty=riskDollar/Math.max(stopDist,1e-12); pos={side:'long',entry,qty,sl,tp1,tp2,iOpen:i};
+    // open
+    const s=sigs[i];
+    if(!pos && s && s.type && s.atr){
+      if(cfg.longOnly && s.type==='short'){ eq.push(balance); continue; }
+      if(i-lastTrade < cfg.cooldownBars){ eq.push(balance); continue; }
+      const entry=candles[i].c; const floor=entry*(cfg.minStopPct/100); const atrEff=Math.max(s.atr||0, floor);
+      const riskDollar=balance*(cfg.riskPct/100);
+      if(s.type==='long'){
+        const sl=entry - atrEff*cfg.slx; const tp=entry + atrEff*cfg.tpx; const qty=riskDollar/Math.max(entry-sl,1e-12); pos={side:'long',entry,sl,tp,qty};
       } else {
-        const sl=entry+atrEff*slx, tp1=entry-atrEff*tp1x, tp2=entry-atrEff*tp2x; const stopDist=Math.max(sl-entry,floor);
-        const qty=riskDollar/Math.max(stopDist,1e-12); pos={side:'short',entry,qty,sl,tp1,tp2,iOpen:i};
+        const sl=entry + atrEff*cfg.slx; const tp=entry - atrEff*cfg.tpx; const qty=riskDollar/Math.max(sl-entry,1e-12); pos={side:'short',entry,sl,tp,qty};
       }
     }
-    const unreal=pos? (pos.side==='long'? (candles[i].close-pos.entry)*pos.qty : (pos.entry-candles[i].close)*pos.qty) : 0;
+    const unreal = pos? (pos.side==='long'? (bar.c-pos.entry)*pos.qty : (pos.entry-bar.c)*pos.qty) : 0;
     eq.push(balance+unreal);
   }
-
-  if(pos){
-    const last=candles[candles.length-1]; const exit=last.close; let pl=(pos.side==='long')? (exit-pos.entry)*pos.qty : (pos.entry-exit)*pos.qty; const fees=(pos.entry*pos.qty+exit*pos.qty)*feeRate; pl-=fees; balance+=pl;
-    trades.push({iClose:candles.length-1,iOpen:pos.iOpen,time:last.closeTime,side:pos.side,entry:pos.entry,exit,qty:pos.qty,sl:pos.sl,tp1:pos.tp1,tp2:pos.tp2,pl}); pos=null;
-  }
-
+  if(pos){ const last=candles[candles.length-1]; const exit=last.c; let pl=(pos.side==='long'? (exit-pos.entry)*pos.qty : (pos.entry-exit)*pos.qty); const fees=(pos.entry*pos.qty+exit*pos.qty)*feeRate; pl-=fees; balance+=pl; trades.push({time:last.time,side:pos.side,entry:pos.entry,exit,qty:pos.qty,sl:pos.sl,tp:pos.tp,pl}); pos=null; }
   const wins=trades.filter(t=>t.pl>0).length; const wr=trades.length? (wins/trades.length*100):0; return {balance,equity:eq,trades,winRate:wr};
 }
 
-// ===== Tiny chart =====
-function drawChart(canvas, series){
-  const ctx=canvas.getContext('2d'); const w=canvas.clientWidth, h=canvas.clientHeight; canvas.width=w*2; canvas.height=h*2; ctx.scale(2,2);
-  ctx.clearRect(0,0,w,h); const pad=10; const min=Math.min(...series.filter(x=>isFinite(x))); const max=Math.max(...series.filter(x=>isFinite(x)));
-  const xStep=(w-2*pad)/Math.max(1,series.length-1); ctx.lineWidth=2; ctx.beginPath();
-  series.forEach((v,i)=>{const x=pad+i*xStep; const y=h-pad-(((v-min)/(max-min||1))*(h-2*pad)); if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y)}); ctx.strokeStyle='#17d1ff'; ctx.stroke();
-}
+// ===== Chart =====
+function drawChart(canvas,series){const ctx=canvas.getContext('2d'); const w=canvas.clientWidth, h=canvas.clientHeight; canvas.width=w*2; canvas.height=h*2; ctx.scale(2,2); ctx.clearRect(0,0,w,h); const pad=10; const min=Math.min(...series.filter(x=>isFinite(x))); const max=Math.max(...series.filter(x=>isFinite(x))); const xStep=(w-2*pad)/Math.max(1,series.length-1); ctx.lineWidth=2; ctx.beginPath(); series.forEach((v,i)=>{const x=pad+i*xStep; const y=h-pad-(((v-min)/(max-min||1))*(h-2*pad)); if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y)}); ctx.strokeStyle='#17d1ff'; ctx.stroke(); }
 
-// ===== UI glue =====
+// ===== UI =====
 const els={
-  symbol:document.getElementById('symbol'), interval:document.getElementById('interval'), strategy:document.getElementById('strategy'), signalMode:document.getElementById('signalMode'),
-  initBalance:document.getElementById('initBalance'), riskPct:document.getElementById('riskPct'), atrMult:document.getElementById('atrMult'), feeBps:document.getElementById('feeBps'),
-  longOnly:document.getElementById('longOnly'), minStopPct:document.getElementById('minStopPct'), cooldownBars:document.getElementById('cooldownBars'),
+  symbol:document.getElementById('symbol'), interval:document.getElementById('interval'), preset:document.getElementById('preset'), initBalance:document.getElementById('initBalance'), riskPct:document.getElementById('riskPct'),
+  atrMult:document.getElementById('atrMult'), dzWidth:document.getElementById('dzWidth'), feeBps:document.getElementById('feeBps'), longOnly:document.getElementById('longOnly'), minStopPct:document.getElementById('minStopPct'), cooldownBars:document.getElementById('cooldownBars'),
   startBtn:document.getElementById('startBtn'), liveBtn:document.getElementById('liveBtn'), resetBtn:document.getElementById('resetBtn'), exportBtn:document.getElementById('exportBtn'),
-  statBalance:document.getElementById('statBalance'), statPL:document.getElementById('statPL'), statWR:document.getElementById('statWR'), statTrades:document.getElementById('statTrades'),
-  tradesTable:document.querySelector('#tradesTable tbody'), chart:document.getElementById('equityChart'), lastSig:document.getElementById('lastSig'), noTrades:document.getElementById('noTrades')
-}
+  statBalance:document.getElementById('statBalance'), statPL:document.getElementById('statPL'), statWR:document.getElementById('statWR'), statTrades:document.getElementById('statTrades'), tradesTable:document.querySelector('#tradesTable tbody'), chart:document.getElementById('equityChart'), lastSig:document.getElementById('lastSig'), noTrades:document.getElementById('noTrades')
+};
 let liveTimer=null, lastState=null;
 
 function parseCfg(){
-  const [slx,tp1x,tp2x]=els.atrMult.value.split(',').map(x=>+x.trim());
-  return {symbol:els.symbol.value.trim().toUpperCase(), interval:els.interval.value, strategy:els.strategy.value, signalMode:els.signalMode.value,
-    initBalance:+els.initBalance.value, riskPct:+els.riskPct.value, slx, tp1x, tp2x, feeBps:+els.feeBps.value,
-    longOnly:(els.longOnly.value==='true'), minStopPct:+els.minStopPct.value, cooldownBars:+els.cooldownBars.value}
+  const [slx,tpx] = String(els.atrMult.value).split(',').map(x=>D(x.trim()));
+  const presets={conservative:{rsiBuy:55,rsiSell:45}, normal:{rsiBuy:52,rsiSell:48}, aggressive:{rsiBuy:50,rsiSell:50}};
+  const P=presets[els.preset.value]||presets.normal;
+  return {symbol:els.symbol.value.trim().toUpperCase(), interval:els.interval.value, initBalance:D(els.initBalance.value), riskPct:D(els.riskPct.value), slx, tpx,
+    dzWidth:D(els.dzWidth.value), feeBps:D(els.feeBps.value), longOnly:(els.longOnly.value==='true'), minStopPct:D(els.minStopPct.value), cooldownBars:parseInt(els.cooldownBars.value||'10',10), ...P};
 }
 
 function render(trades, equity, balance, initBalance){
   els.tradesTable.innerHTML='';
-  trades.forEach((t,idx)=>{
-    const tr=document.createElement('tr'); const time=new Date(t.time).toLocaleString();
-    tr.innerHTML=`<td>${idx+1}</td><td>${time}</td><td>${t.side==='long'?'<span class="pill long">LONG</span>':'<span class="pill short">SHORT</span>'}</td>
-    <td>${fmt(t.entry)}</td><td>${fmt(t.exit)}</td><td>${fmt(t.qty,4)}</td><td>${fmt(t.sl)}</td><td>${fmt(t.tp1)}</td><td>${fmt(t.tp2)}</td>
-    <td style="color:${t.pl>=0?'#80ffd9':'#ff9aa9'}">${fmt(t.pl,4)}</td>`; els.tradesTable.appendChild(tr);
-  })
+  trades.forEach((t,idx)=>{ const tr=document.createElement('tr'); const time=new Date(t.time).toLocaleString(); tr.innerHTML=`<td>${idx+1}</td><td>${time}</td><td>${t.side==='long'?'<span class="pill long">LONG</span>':'<span class="pill short">SHORT</span>'}</td><td>${fmt(t.entry)}</td><td>${fmt(t.exit)}</td><td>${fmt(t.qty,4)}</td><td>${fmt(t.sl)}</td><td>${fmt(t.tp)}</td><td style="color:${t.pl>=0?'#80ffd9':'#ff9aa9'}">${fmt(t.pl,4)}</td>`; els.tradesTable.appendChild(tr); });
   els.noTrades.style.display = trades.length? 'none':'block';
-  const pl=balance-initBalance; const plPct=initBalance? (pl/initBalance*100):0;
-  els.statBalance.textContent=`${fmt(balance,2)} USDT`; els.statPL.textContent=`${fmt(pl,2)} (${fmt(plPct,2)}%)`;
-  const wins=trades.filter(t=>t.pl>0).length; const wr=trades.length? (wins/trades.length*100):0; els.statWR.textContent=`${fmt(wr,1)}%`; els.statTrades.textContent=trades.length;
-  drawChart(els.chart, equity);
-  if(lastState?.lastSignal) els.lastSig.textContent = lastState.lastSignal; else els.lastSig.textContent='-';
+  const pl=balance-initBalance; const plPct=initBalance? (pl/initBalance*100):0; els.statBalance.textContent=`${fmt(balance,2)} USDT`; els.statPL.textContent=`${fmt(pl,2)} (${fmt(plPct,2)}%)`; const wins=trades.filter(t=>t.pl>0).length; const wr=trades.length? (wins/trades.length*100):0; els.statWR.textContent=`${fmt(wr,1)}%`; els.statTrades.textContent=trades.length; drawChart(els.chart, equity);
 }
 
-function toCSV(trades){
-  const head=['#','Time','Side','Entry','Exit','Qty','SL','TP1','TP2','P/L'];
-  const rows=trades.map((t,i)=>[i+1,new Date(t.time).toISOString(),t.side, t.entry, t.exit, t.qty, t.sl, t.tp1, t.tp2, t.pl]);
-  return [head.join(','),...rows.map(r=>r.join(','))].join('\n');
-}
+function toCSV(trades){ const head=['#','Time','Side','Entry','Exit','Qty','SL','TP','P/L']; const rows=trades.map((t,i)=>[i+1,new Date(t.time).toISOString(),t.side,t.entry,t.exit,t.qty,t.sl,t.tp,t.pl]); return [head.join(','),...rows.map(r=>r.join(','))].join('\n'); }
 
 async function runBacktest(live=false){
   const cfg=parseCfg();
   const candles=await fetchKlines(cfg.symbol,cfg.interval,1000);
-  const {sigs}=signalsFromStrategy(candles,cfg.strategy,cfg);
-  const result=backtest(candles,sigs,cfg);
-  lastState={cfg,candles,sigs,result};
-  // last signal text
-  const lastIdx=[...sigs].reverse().find(s=>s.type); if(lastIdx){ const s=lastIdx; lastState.lastSignal = `Last signal: ${s.type?.toUpperCase()} @ ${new Date(s.time).toLocaleString()} (${s.reason||''})`; }
-  render(result.trades,result.equity,result.balance,cfg.initBalance);
-  if(live){ if(liveTimer) clearInterval(liveTimer); liveTimer=setInterval(async()=>{ try{
-        const n=await fetchKlines(cfg.symbol,cfg.interval,1000);
-        const {sigs}=signalsFromStrategy(n,cfg.strategy,cfg);
-        const r=backtest(n,sigs,cfg); lastState={cfg,candles:n,sigs,result:r};
-        const lastIdx=[...sigs].reverse().find(s=>s.type); if(lastIdx){ const s=lastIdx; lastState.lastSignal = `Last signal: ${s.type?.toUpperCase()} @ ${new Date(s.time).toLocaleString()} (${s.reason||''})`; }
-        render(r.trades,r.equity,r.balance,cfg.initBalance);
-      }catch(e){console.error(e)} }, 30000); }
+  const sigs=deadZonePro(candles,{dzWidth:cfg.dzWidth,rsiBuy:cfg.rsiBuy,rsiSell:cfg.rsiSell});
+  // find last signal text
+  for(let i=sigs.length-1;i>=0;i--){ if(sigs[i] && sigs[i].type){ els.lastSig.textContent = `Last: ${sigs[i].type.toUpperCase()} @ ${new Date(candles[i].time).toLocaleString()} — ${sigs[i].reason}`; break; } }
+  const result=backtest(candles,sigs,cfg); lastState={cfg,candles,sigs,result}; render(result.trades,result.equity,result.balance,cfg.initBalance);
+  if(live){ if(liveTimer) clearInterval(liveTimer); liveTimer=setInterval(async()=>{ try{ const n=await fetchKlines(cfg.symbol,cfg.interval,1000); const s=deadZonePro(n,{dzWidth:cfg.dzWidth,rsiBuy:cfg.rsiBuy,rsiSell:cfg.rsiSell}); const r=backtest(n,s,cfg); lastState={cfg,candles:n,sigs:s,result:r}; render(r.trades,r.equity,r.balance,cfg.initBalance);}catch(e){console.error(e)} }, 30000); }
 }
 
-// Handlers
 els.startBtn.onclick=()=>runBacktest(false);
-els.liveBtn.onclick=()=>{ if(liveTimer){clearInterval(liveTimer); liveTimer=null; els.liveBtn.textContent='⏱ Live Update (on/off)';} else { runBacktest(true); els.liveBtn.textContent='⏱ Live Update: ON'; } }
-els.resetBtn.onclick=()=>{ if(liveTimer){clearInterval(liveTimer); liveTimer=null} lastState=null; els.tradesTable.innerHTML=''; drawChart(els.chart,[0,0]); els.statBalance.textContent='-'; els.statPL.textContent='-'; els.statWR.textContent='-'; els.statTrades.textContent='-'; els.lastSig.textContent='-';}
+els.liveBtn.onclick=()=>{ if(liveTimer){clearInterval(liveTimer); liveTimer=null; els.liveBtn.textContent='⏱ Live Update (on/off)'; } else { runBacktest(true); els.liveBtn.textContent='⏱ Live Update: ON'; } };
+els.resetBtn.onclick=()=>{ if(liveTimer){clearInterval(liveTimer); liveTimer=null;} lastState=null; els.tradesTable.innerHTML=''; drawChart(document.getElementById('equityChart'),[0,0]); els.statBalance.textContent='-'; els.statPL.textContent='-'; els.statWR.textContent='-'; els.statTrades.textContent='-'; els.lastSig.textContent='-';};
 els.exportBtn.onclick=()=>{ if(!lastState?.result?.trades?.length){alert('Belum ada trade');return} const csv=toCSV(lastState.result.trades); const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=`trades_${(new Date()).toISOString().slice(0,19)}.csv`; a.click(); URL.revokeObjectURL(url); }
 
-// Autorun
+// Autorun (non-live)
 runBacktest(false).catch(console.error);
 </script>
 </body>
